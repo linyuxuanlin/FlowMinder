@@ -1,0 +1,28 @@
+services:
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:80"
+    volumes:
+      - ./data:/app/data
+    depends_on:
+      - backend
+    networks:
+      - flowminder-network
+
+  backend:
+    build: ./backend
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./data:/app/data
+    networks:
+      - flowminder-network
+
+networks:
+  flowminder-network:
+    driver: bridge
+
+volumes:
+  data:
+    driver: local
