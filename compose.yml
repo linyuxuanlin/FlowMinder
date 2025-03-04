@@ -1,21 +1,46 @@
 services:
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
     ports:
-      - "3000:80"
+      - "3000:3000"
     volumes:
+      - ./frontend:/app
+      - /app/node_modules
       - ./data:/app/data
     depends_on:
       - backend
+    environment:
+      - REACT_APP_API_URL=http://localhost:5000
     networks:
       - flowminder-network
 
   backend:
-    build: ./backend
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
     ports:
       - "5000:5000"
     volumes:
+      - ./backend:/app
+      - /app/node_modules
       - ./data:/app/data
+    depends_on:
+      - mongodb
+    environment:
+      - MONGODB_URI=mongodb://mongodb:27017/flowminder
+      - PORT=5000
+      - NODE_ENV=development
+    networks:
+      - flowminder-network
+
+  mongodb:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
     networks:
       - flowminder-network
 
@@ -24,5 +49,4 @@ networks:
     driver: bridge
 
 volumes:
-  data:
-    driver: local
+  mongodb_data: 
