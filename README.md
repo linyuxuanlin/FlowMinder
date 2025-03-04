@@ -1,154 +1,198 @@
-# FlowMinder - 创新型项目管理工具
+# FlowMinder - 基于Git分支概念的项目管理系统
 
-FlowMinder是一个基于Git分支概念的项目管理工具，专注于任务流程的可视化与双向同步功能。它允许用户以类似Git分支的方式组织任务，并在网页界面与本地Markdown文件之间实现无缝同步。
+## 项目概述
 
-## 核心特性
+FlowMinder是一个创新的项目管理Web应用，它结合了Git分支的概念来组织任务结构，并提供了本地Markdown文件与Web界面的双向同步功能。项目使用Docker Compose进行部署，确保了环境的一致性和部署的简便性。
 
-- **分支式任务管理**：采用类似Git分支的概念，任务分为主线和支线，支线可以再衍生出支线
-- **状态追踪**：任务可设置多种状态（未开始、进行中、已完成等）
-- **交互式界面**：任务节点可在网页上自由拖动、缩放和编辑
-- **本地文件同步**：
-  - 任务内容以Markdown格式本地化存储，支持使用外部编辑器编辑
-  - 任务关系通过配置文件描述
-  - 网页与本地文件双向实时同步
+### 核心特性
 
-## 技术架构
+- **分支式任务管理**：任务分为主线和支线，主线任务可以延伸出支线任务，支线任务也可以继续延伸
+- **灵活的任务状态**：支持自定义任务状态（如未开始、进行中、已完成等）
+- **交互式可视化界面**：任务节点可以在网页上自由拖动、缩放和编辑
+- **本地文件双向同步**：
+  - 任务内容以Markdown格式存储在本地，可使用任何编辑器修改
+  - 任务关系结构以配置文件形式存储，支持与Web界面双向同步
+- **Docker化部署**：使用Docker Compose简化部署流程
 
-### 前端技术栈
-- **框架**：React + TypeScript
-- **状态管理**：Redux Toolkit
-- **UI组件**：Material-UI
-- **图表可视化**：React Flow（用于任务节点的可视化和交互）
-- **Markdown编辑**：React-Markdown + CodeMirror
+## 技术栈选择
 
-### 后端技术栈
-- **框架**：Node.js + Express
-- **数据库**：MongoDB（存储任务数据和关系）
-- **文件监控**：Chokidar（监控本地文件变化）
-- **API设计**：RESTful API
+### 前端
 
-### 文件同步机制
-- 使用WebSocket实现前端与后端的实时通信
-- 后端监控本地文件变化，并将更改推送到前端
-- 前端编辑后通过API保存到数据库，同时更新本地文件
+- **React**：用于构建用户界面的JavaScript库
+- **TypeScript**：增强代码的可维护性和类型安全
+- **React Flow**：用于可视化和操作节点图的库
+- **TailwindCSS**：用于快速构建自定义界面的CSS框架
+- **Monaco Editor**：提供内嵌的Markdown编辑功能
 
-### 容器化部署
-- 使用Docker Compose编排多个服务：
-  - 前端服务
-  - 后端API服务
-  - MongoDB数据库
-  - 文件同步服务
+### 后端
 
-## 开发路线图
+- **Node.js + Express**：构建RESTful API
+- **TypeScript**：类型安全的JavaScript超集
+- **Prisma**：现代数据库ORM工具
+- **PostgreSQL**：关系型数据库，存储任务和关系数据
+- **Socket.IO**：实现实时双向通信，支持文件变更的即时同步
 
-### 第一阶段：基础框架搭建
-1. 创建项目结构
-2. 设置Docker容器配置
-3. 实现基本的前端界面
-4. 构建基础后端API
+### 部署与开发工具
 
-### 第二阶段：核心功能开发
-1. 实现任务的分支结构
-2. 开发任务状态管理功能
-3. 构建交互式任务节点图
-4. 实现任务创建、编辑和删除功能
+- **Docker & Docker Compose**：容器化应用和服务编排
+- **Nginx**：作为反向代理服务器
+- **Chokidar**：监控文件系统变化
+- **Jest & React Testing Library**：单元测试和集成测试
 
-### 第三阶段：文件同步功能
-1. 设计本地文件结构
-2. 实现Markdown文件的读写
-3. 开发配置文件格式和处理逻辑
-4. 构建文件监控和同步机制
+## 系统架构
 
-### 第四阶段：用户体验优化
-1. 改进UI/UX设计
-2. 添加快捷键和辅助功能
-3. 优化性能和响应速度
-4. 实现用户偏好设置
-
-### 第五阶段：测试和部署
-1. 编写单元测试和集成测试
-2. 优化Docker配置
-3. 编写详细文档
-4. 准备发布版本
-
-## 本地文件结构设计
-
-FlowMinder将使用以下文件结构在本地存储任务数据：
+### 整体架构
 
 ```
-workspace/
-├── flows/
-│   ├── main/          # 主线任务
-│   │   ├── task1.md   # 主线任务1的Markdown文件
-│   │   └── task2.md   # 主线任务2的Markdown文件
-│   └── branches/      # 支线任务
-│       ├── branch1/   # 支线1的任务
-│       │   ├── task1.md
-│       │   └── task2.md
-│       └── branch2/   # 支线2的任务
-│           └── task1.md
-└── config/
-    └── flow.json      # 任务关系配置文件
++------------------+     +------------------+     +------------------+
+|                  |     |                  |     |                  |
+|  Web界面 (React) |<--->|  后端API (Node)  |<--->|  数据库          |
+|                  |     |                  |     |  (PostgreSQL)    |
++------------------+     +------------------+     +------------------+
+                               ^      ^
+                               |      |
+                               v      v
+                         +------------------+
+                         |                  |
+                         |  本地文件系统    |
+                         |  (Markdown文件)  |
+                         |                  |
+                         +------------------+
 ```
 
-## 配置文件格式
+### 数据流
 
-`flow.json` 文件将使用以下格式来描述任务之间的关系：
+1. **用户在Web界面编辑任务**：
+   - 通过API将更改保存到数据库
+   - 后端服务将更改同步到本地Markdown文件
 
-```json
-{
-  "nodes": [
-    {
-      "id": "main/task1",
-      "type": "main",
-      "status": "completed",
-      "position": { "x": 100, "y": 100 }
-    },
-    {
-      "id": "branches/branch1/task1",
-      "type": "branch",
-      "parent": "main/task1",
-      "status": "in-progress",
-      "position": { "x": 200, "y": 200 }
-    }
-  ],
-  "edges": [
-    {
-      "source": "main/task1",
-      "target": "branches/branch1/task1",
-      "type": "branch"
-    }
-  ]
+2. **用户编辑本地Markdown文件**：
+   - 文件监控服务检测到变化
+   - 解析变更并通过API更新数据库
+   - 通过WebSocket通知前端更新界面
+
+3. **任务关系管理**：
+   - 关系数据存储在专用配置文件中
+   - 支持与数据库的双向同步
+   - 前端使用React Flow可视化关系结构
+
+## 数据模型
+
+### 任务 (Task)
+
+```typescript
+interface Task {
+  id: string;           // 唯一标识符
+  title: string;        // 任务标题
+  content: string;      // Markdown内容
+  status: string;       // 任务状态
+  parentId: string | null; // 父任务ID（主线或上级支线）
+  filePath: string;     // 对应的本地Markdown文件路径
+  createdAt: Date;      // 创建时间
+  updatedAt: Date;      // 更新时间
+  position: {           // 在可视化界面中的位置
+    x: number;
+    y: number;
+  };
 }
 ```
 
-## 启动与安装
+### 任务关系 (TaskRelation)
 
-### 前提条件
-- Docker 和 Docker Compose
-- Git
+```typescript
+interface TaskRelation {
+  id: string;           // 唯一标识符
+  sourceId: string;     // 源任务ID
+  targetId: string;     // 目标任务ID
+  type: string;         // 关系类型
+}
+```
 
-### 安装步骤
-1. 克隆项目仓库
-   ```bash
-   git clone https://github.com/yourusername/flowminder.git
-   cd flowminder
-   ```
+## 开发路线图
 
-2. 启动Docker容器
-   ```bash
-   docker-compose up -d
-   ```
+### 阶段1：项目初始化与基础架构
 
-3. 访问应用
-   ```
-   http://localhost:3000
-   ```
+1. 创建项目结构和配置文件
+2. 设置Docker Compose环境
+3. 实现前端基础框架
+4. 实现后端API基础结构
+5. 设置数据库模型和迁移
+
+### 阶段2：核心功能开发
+
+1. 实现任务CRUD操作
+2. 开发任务关系管理功能
+3. 实现任务状态管理
+4. 开发可视化任务图表界面
+5. 实现拖拽、缩放等交互功能
+
+### 阶段3：本地文件同步机制
+
+1. 实现Markdown文件生成和解析
+2. 开发文件系统监控服务
+3. 实现双向同步逻辑
+4. 开发任务关系配置文件格式和同步机制
+
+### 阶段4：优化与测试
+
+1. 实现实时协作功能
+2. 优化性能和用户体验
+3. 编写单元测试和集成测试
+4. 进行安全性测试和优化
+
+### 阶段5：部署与文档
+
+1. 完善Docker部署配置
+2. 编写用户文档和API文档
+3. 准备示例项目和演示数据
+
+## 文件结构
+
+```
+flowminder/
+├── docker-compose.yml          # Docker Compose配置
+├── .env                        # 环境变量
+├── README.md                   # 项目文档
+├── frontend/                   # 前端应用
+│   ├── src/
+│   │   ├── components/         # React组件
+│   │   ├── hooks/              # 自定义React Hooks
+│   │   ├── services/           # API服务
+│   │   ├── types/              # TypeScript类型定义
+│   │   └── utils/              # 工具函数
+│   ├── public/                 # 静态资源
+│   ├── package.json            # 前端依赖
+│   └── tsconfig.json           # TypeScript配置
+├── backend/                    # 后端应用
+│   ├── src/
+│   │   ├── controllers/        # API控制器
+│   │   ├── models/             # 数据模型
+│   │   ├── routes/             # API路由
+│   │   ├── services/           # 业务逻辑服务
+│   │   ├── utils/              # 工具函数
+│   │   └── file-sync/          # 文件同步服务
+│   ├── prisma/                 # Prisma ORM配置
+│   │   └── schema.prisma       # 数据库模型定义
+│   ├── package.json            # 后端依赖
+│   └── tsconfig.json           # TypeScript配置
+└── nginx/                      # Nginx配置
+    └── default.conf            # 默认站点配置
+```
+
+## 下一步计划
+
+按照上述路线图，我们将首先创建Docker Compose配置和项目基础结构，然后逐步实现各个功能模块。每个阶段完成后，我们将进行测试和优化，确保系统的稳定性和可用性。
 
 ## 贡献指南
 
-欢迎为FlowMinder项目做出贡献！请参阅 `CONTRIBUTING.md` 文件了解详情。
+欢迎对FlowMinder项目做出贡献！请遵循以下步骤：
+
+1. Fork本仓库
+2. 创建您的特性分支 (`git checkout -b feature/amazing-feature`)
+3. 提交您的更改 (`git commit -m 'Add some amazing feature'`)
+4. 推送到分支 (`git push origin feature/amazing-feature`)
+5. 打开一个Pull Request
 
 ## 许可证
 
-本项目采用 MIT 许可证。详见 `LICENSE` 文件。 
+本项目采用MIT许可证 - 详情请参阅LICENSE文件
