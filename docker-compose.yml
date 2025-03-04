@@ -1,0 +1,72 @@
+version: '3.8'
+
+services:
+  # 前端服务
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+    environment:
+      - REACT_APP_API_URL=http://localhost:5000
+    networks:
+      - flowminder-network
+
+  # 后端API服务
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+      - ./workspace:/app/workspace
+    depends_on:
+      - mongodb
+    environment:
+      - MONGODB_URI=mongodb://mongodb:27017/flowminder
+      - WORKSPACE_PATH=/app/workspace
+    networks:
+      - flowminder-network
+
+  # 文件同步服务
+  sync-service:
+    build:
+      context: ./sync-service
+      dockerfile: Dockerfile
+    volumes:
+      - ./sync-service:/app
+      - /app/node_modules
+      - ./workspace:/app/workspace
+    depends_on:
+      - backend
+    environment:
+      - BACKEND_URL=http://backend:5000
+      - WORKSPACE_PATH=/app/workspace
+    networks:
+      - flowminder-network
+
+  # MongoDB数据库
+  mongodb:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb-data:/data/db
+    networks:
+      - flowminder-network
+
+volumes:
+  mongodb-data:
+
+networks:
+  flowminder-network:
+    driver: bridge 
