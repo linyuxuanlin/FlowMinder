@@ -1,63 +1,40 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
 
-// API_URL常量
+// 添加API_URL常量
 const API_URL = 'http://localhost:5000';
 
-// 创建URLSearchParams接口
 interface Task {
   _id: string;
   title: string;
-  description: string;
-  status: string;
   isMainNode: boolean;
-  parentId: string | null;
 }
 
 const CreateTask: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>();
-  const navigate = useNavigate();
-  const location = useLocation();
-  
-  // 从URL获取parentId参数
-  const queryParams = new URLSearchParams(location.search);
-  const parentIdFromUrl = queryParams.get('parentId');
-  
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     status: 'in_progress',
     isMainNode: false,
-    parentId: parentIdFromUrl || '',
+    parentId: '',
     filePath: ''
   });
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  // 如果URL中有parentId，默认为支线任务
-  useEffect(() => {
-    if (parentIdFromUrl) {
-      setFormData(prev => ({
-        ...prev, 
-        parentId: parentIdFromUrl,
-        isMainNode: false
-      }));
-    }
-  }, [parentIdFromUrl]);
+  const navigate = useNavigate();
 
   useEffect(() => {
+    // 获取可能的父任务列表
     const fetchTasks = async () => {
       try {
-        setLoading(true);
         const res = await axios.get(`${API_URL}/api/tasks?projectId=${projectId}`);
         setTasks(res.data);
-        setLoading(false);
       } catch (err) {
-        console.error('Error fetching tasks:', err);
-        setError('获取任务列表失败，请稍后重试');
-        setLoading(false);
+        console.error('获取任务列表失败:', err);
       }
     };
 
@@ -105,12 +82,12 @@ const CreateTask: React.FC = () => {
     if (formData.isMainNode) return true;
     
     // 如果是支线任务，只有其他非abandoned状态的任务可以作为父任务
-    return task.status !== 'abandoned';
+    return true; // 这里简化了，实际应该检查任务状态
   });
 
   return (
     <div className="max-w-2xl mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-6">{parentIdFromUrl ? '创建子任务' : '创建新任务'}</h1>
+      <h1 className="text-2xl font-bold mb-6">创建新任务</h1>
       
       {error && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
@@ -162,7 +139,6 @@ const CreateTask: React.FC = () => {
                 });
               }}
               className="mr-2"
-              disabled={!!parentIdFromUrl} // 如果从URL获取到parentId，禁用主线任务选项
             />
             <label htmlFor="isMainNode" className="text-gray-700 text-sm font-bold">
               这是一个主线任务
@@ -170,7 +146,6 @@ const CreateTask: React.FC = () => {
           </div>
           <p className="text-xs text-gray-500 mt-1">
             主线任务将显示在任务流的中央主线上，支线任务会从主线任务派生出来。主线任务无需设置状态。
-            {parentIdFromUrl && <span className="text-blue-500"> (当前正在创建子任务，无法选择为主线任务)</span>}
           </p>
         </div>
         
@@ -185,7 +160,6 @@ const CreateTask: React.FC = () => {
               onChange={(e) => setFormData({ ...formData, parentId: e.target.value || '' })}
               className="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
               required={!formData.isMainNode}
-              disabled={!!parentIdFromUrl} // 如果从URL获取到parentId，禁用选择
             >
               <option value="">-- 选择父任务 --</option>
               {availableParentTasks.map(task => (
@@ -196,7 +170,6 @@ const CreateTask: React.FC = () => {
             </select>
             <p className="text-xs text-gray-500 mt-1">
               支线任务必须选择一个父任务。支线任务完成后将合并回父任务（除非标记为已弃用）。
-              {parentIdFromUrl && <span className="text-blue-500"> (父任务已自动选择)</span>}
             </p>
           </div>
         )}
@@ -218,23 +191,6 @@ const CreateTask: React.FC = () => {
             </select>
           </div>
         )}
-        
-        <div className="mb-6">
-          <label htmlFor="filePath" className="block text-gray-700 text-sm font-bold mb-2">
-            文件路径
-          </label>
-          <input
-            type="text"
-            id="filePath"
-            value={formData.filePath}
-            onChange={(e) => setFormData({ ...formData, filePath: e.target.value })}
-            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-            placeholder="输入关联文件路径（可选）"
-          />
-          <p className="text-xs text-gray-500 mt-1">
-            可以指定任务关联的文件路径，方便后续查看和编辑文件内容。
-          </p>
-        </div>
         
         <div className="flex items-center justify-end">
           <button

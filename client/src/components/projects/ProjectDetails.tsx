@@ -48,13 +48,11 @@ interface FlowConfig {
 // 自定义节点组件，包含添加按钮
 const CustomNode = ({ data }: { data: any }) => {
   return (
-    <div className="relative p-3">
-      <div className="text-center font-medium mb-1">
+    <div className="relative">
+      <div className="p-2">
         {data.label}
       </div>
-      {data.task && data.task._id && (
-        <AddNodeButton id={data.task._id} />
-      )}
+      <AddNodeButton id={data.task._id} />
     </div>
   );
 };
@@ -68,20 +66,15 @@ const AddNodeButton = ({ id }: { id: string }) => {
   
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    e.preventDefault();
-    console.log('Adding task for parent:', id);
     navigate(`/projects/${projectId}/tasks/new?parentId=${id}`);
   };
   
   return (
-    <div className="flex justify-center mt-1">
-      <button 
-        className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center cursor-pointer hover:bg-blue-600 z-20 shadow-md"
-        onClick={handleClick}
-        title="添加子任务"
-      >
-        <span className="text-white font-bold">+</span>
-      </button>
+    <div 
+      className="absolute bottom-[-20px] left-1/2 transform -translate-x-1/2 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center cursor-pointer hover:bg-blue-600 z-10"
+      onClick={handleClick}
+    >
+      <span className="text-white font-bold">+</span>
     </div>
   );
 };
@@ -161,11 +154,10 @@ const ProjectDetails: React.FC = () => {
       style: {
         background: '#f5e0c3', // 主节点统一使用浅棕色，无需根据状态变化
         border: '2px solid #d4a76a', // 主线任务有更粗的边框，颜色与背景协调
-        borderRadius: '8px',
+        borderRadius: '5px',
         padding: '10px',
         width: 180,
         fontWeight: 'bold', // 主线任务有更粗的字体
-        boxShadow: '0 2px 5px rgba(0,0,0,0.1)'
       }
     }));
     
@@ -207,11 +199,10 @@ const ProjectDetails: React.FC = () => {
                       task.status === 'abandoned' ? '#e5e7eb' : // 已弃用 - 浅灰色
                       '#fef3c7', // 默认为浅黄色（进行中）
             border: '1px solid #ccc',
-            borderRadius: '8px',
+            borderRadius: '5px',
             padding: '10px',
             width: 180,
             fontWeight: 'normal',
-            boxShadow: '0 2px 5px rgba(0,0,0,0.1)'
           }
         };
         
