@@ -19,4 +19,37 @@ nodes:
       title: LDO
       status: pending
       filePath: ldo.md
-edges: []
+  - id: 67da3574ca1de84a0816182e
+    type: taskNode
+    position:
+      x: 0
+      y: 0
+    data:
+      title: tsens readme
+      status: in_progress
+      filePath: tsens_readme.md
+  - id: 67da359eca1de84a08161837
+    type: mainNode
+    position:
+      x: 0
+      y: 0
+    data:
+      title: ICC
+      status: pending
+      filePath: icc.md
+  - id: 67da35bfca1de84a08161844
+    type: taskNode
+    position:
+      x: 0
+      y: 0
+    data:
+      title: tsens2
+      status: in_progress
+      filePath: tsens2.md
+edges:
+  - id: e67da2c7e0750ddb20a8f2f36-67da3574ca1de84a0816182e
+    source: 67da2c7e0750ddb20a8f2f36
+    target: 67da3574ca1de84a0816182e
+  - id: e67da2c7e0750ddb20a8f2f36-67da35bfca1de84a08161844
+    source: 67da2c7e0750ddb20a8f2f36
+    target: 67da35bfca1de84a08161844

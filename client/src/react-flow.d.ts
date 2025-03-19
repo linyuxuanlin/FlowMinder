@@ -32,6 +32,7 @@ declare module 'reactflow' {
     connectionLineType?: string;
     fitView?: boolean;
     nodeTypes?: Record<string, React.ComponentType<any>>;
+    children?: React.ReactNode;
   }
   
   export interface BackgroundProps {

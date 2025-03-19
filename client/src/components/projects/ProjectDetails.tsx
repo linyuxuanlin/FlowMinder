@@ -1,16 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import ReactFlow, { 
-  Background, 
-  Controls, 
-  ConnectionLineType,
-  Node,
-  Edge,
-  ReactFlowInstance,
-  MarkerType
-} from 'reactflow';
-import 'reactflow/dist/style.css';
+import ReactFlow, { Background, Controls, ConnectionLineType, Node, Edge, ReactFlowInstance, MarkerType } from 'react-flow-renderer';
+import 'react-flow-renderer/dist/style.css';
 
 interface Project {
   _id: string;
