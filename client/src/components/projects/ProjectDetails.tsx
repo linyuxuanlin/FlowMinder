@@ -45,39 +45,41 @@ interface FlowConfig {
   edges: any[];
 }
 
-// 自定义节点组件，包含添加按钮
+// 更新自定义节点组件，始终渲染按钮但通过CSS控制可见性
 const CustomNode = ({ data }: { data: any }) => {
+  const [isHovered, setIsHovered] = useState(false);
+  
   return (
-    <div className="relative">
+    <div 
+      className="relative node-container"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      style={{ width: '100%', height: '100%' }}
+    >
       <div className="p-2">
         {data.label}
       </div>
-      <AddNodeButton id={data.task._id} />
+      
+      <div 
+        className={`add-button absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-1/2 
+                   w-6 h-6 bg-white rounded-full flex items-center justify-center 
+                   border border-gray-300 hover:border-blue-500 hover:bg-blue-50 
+                   shadow-sm z-50 transition-opacity duration-200
+                   ${isHovered ? 'opacity-100' : 'opacity-0'}`}
+        onClick={(e) => {
+          e.stopPropagation();
+          e.preventDefault();
+          const projectId = data.task.projectId;
+          window.location.href = `/projects/${projectId}/tasks/new?parentId=${data.task._id}`;
+        }}
+      >
+        <span className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-blue-600 font-bold text-sm">+</span>
+      </div>
     </div>
   );
 };
 
 const API_URL = 'http://localhost:5000';
-
-// 自定义添加节点按钮组件
-const AddNodeButton = ({ id }: { id: string }) => {
-  const navigate = useNavigate();
-  const { id: projectId } = useParams<{ id: string }>();
-  
-  const handleClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    navigate(`/projects/${projectId}/tasks/new?parentId=${id}`);
-  };
-  
-  return (
-    <div 
-      className="absolute bottom-[-20px] left-1/2 transform -translate-x-1/2 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center cursor-pointer hover:bg-blue-600 z-10"
-      onClick={handleClick}
-    >
-      <span className="text-white font-bold">+</span>
-    </div>
-  );
-};
 
 const ProjectDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -101,6 +103,9 @@ const ProjectDetails: React.FC = () => {
   const nodeTypes = {
     default: CustomNode
   };
+
+  // 添加branch的概念
+  const [branches, setBranches] = useState<string[]>(['Branch 1', 'Branch 2']);
 
   useEffect(() => {
     const fetchProjectDetails = async () => {
@@ -139,27 +144,72 @@ const ProjectDetails: React.FC = () => {
     const mainNodes = tasks.filter(task => task.isMainNode);
     const subNodes = tasks.filter(task => !task.isMainNode);
     
-    // 为主线节点分配X轴位置（水平排列）
-    const mainNodesPositioned = mainNodes.map((task, index) => ({
-      id: task._id,
-      data: { 
-        label: task.title,
-        task,
-        // 主线任务不显示状态
-        isMainNode: true
-      },
-      position: { x: index * 250, y: 100 }, // 从左到右排列
-      type: 'default',
-      draggable: true, // 允许拖动
-      style: {
-        background: '#f5e0c3', // 主节点统一使用浅棕色，无需根据状态变化
-        border: '2px solid #d4a76a', // 主线任务有更粗的边框，颜色与背景协调
-        borderRadius: '5px',
-        padding: '10px',
-        width: 180,
-        fontWeight: 'bold', // 主线任务有更粗的字体
-      }
-    }));
+    // 创建分支，如果没有足够的主节点，就使用默认分支
+    const branchCount = Math.max(1, Math.ceil(mainNodes.length / 2));
+    const activeBranches = branches.slice(0, branchCount);
+    
+    // 为每个分支创建主线节点
+    const mainNodesPositioned: Node[] = [];
+    let nodeCounter = 0;
+    
+    activeBranches.forEach((branchName, branchIndex) => {
+      // 为每个分支创建分支标题节点
+      mainNodesPositioned.push({
+        id: `branch-${branchIndex}`,
+        data: { 
+          label: branchName,
+          task: {
+            _id: `branch-${branchIndex}`,
+            title: branchName,
+            isMainNode: true,
+            projectId: id || ''
+          },
+          isHeaderNode: true
+        },
+        position: { x: branchIndex * 350, y: 0 },
+        type: 'default',
+        draggable: false,
+        style: {
+          background: '#f3f4f6',
+          border: '1px solid #d1d5db',
+          borderRadius: '5px',
+          padding: '10px',
+          width: 180,
+          fontWeight: 'bold',
+          opacity: 0.8,
+        }
+      });
+      
+      // 为该分支分配主节点
+      const branchMainNodes = mainNodes.filter((_, index) => 
+        Math.floor(index / 2) === branchIndex && index < branchCount * 2
+      );
+      
+      // 垂直排列每个分支下的主节点
+      branchMainNodes.forEach((task, taskIndex) => {
+        mainNodesPositioned.push({
+          id: task._id,
+          data: { 
+            label: task.title,
+            task,
+            isMainNode: true
+          },
+          position: { x: branchIndex * 350, y: 100 + taskIndex * 200 },
+          type: 'default',
+          draggable: true,
+          style: {
+            background: '#f5e0c3',
+            border: '2px solid #d4a76a',
+            borderRadius: '5px',
+            padding: '10px',
+            width: 180,
+            fontWeight: 'bold',
+          }
+        });
+        
+        nodeCounter++;
+      });
+    });
     
     // 为支线节点分配位置（基于父节点）
     const subNodesMap = new Map<string, Task[]>();
@@ -173,14 +223,14 @@ const ProjectDetails: React.FC = () => {
     
     const subNodesPositioned: Node[] = [];
     
-    // 递归为子节点分配位置，任务步骤是从上到下的
-    const positionSubNodes = (parentId: string, parentPos: { x: number, y: number }, depth: number = 0) => {
+    // 递归为子节点分配位置，支线任务向右展开
+    const positionSubNodes = (parentId: string, parentPos: { x: number, y: number }, level: number = 0) => {
       const children = subNodesMap.get(parentId) || [];
       const childrenNodes = children.map((task, index) => {
-        // 支线节点在父节点下方排列
+        // 计算子任务位置：垂直距离父节点下方150px，水平偏移根据层级
         const position = { 
-          x: parentPos.x, 
-          y: parentPos.y + 150 + (depth * 50) // 从上到下排列，深度越大位置越下
+          x: parentPos.x + (level * 250), // 子任务向右延伸
+          y: parentPos.y + 150 + (index * 100) // 同级子任务从上到下排列
         };
         
         const node = {
@@ -192,12 +242,12 @@ const ProjectDetails: React.FC = () => {
           },
           position,
           type: 'default',
-          draggable: true, // 允许拖动
+          draggable: true,
           style: {
             background: task.status === 'completed' ? '#d1fae5' : // 已完成 - 浅绿色
                       task.status === 'in_progress' ? '#fef3c7' : // 进行中 - 浅黄色
                       task.status === 'abandoned' ? '#e5e7eb' : // 已弃用 - 浅灰色
-                      '#fef3c7', // 默认为浅黄色（进行中）
+                      '#fef3c7', // 默认为浅黄色
             border: '1px solid #ccc',
             borderRadius: '5px',
             padding: '10px',
@@ -207,7 +257,7 @@ const ProjectDetails: React.FC = () => {
         };
         
         // 递归处理子节点的子节点
-        positionSubNodes(task._id, position, depth + 1);
+        positionSubNodes(task._id, position, level + 1);
         
         return node;
       });
@@ -216,9 +266,11 @@ const ProjectDetails: React.FC = () => {
     };
     
     // 以每个主线节点为起点处理其子节点
-    mainNodesPositioned.forEach(node => {
-      positionSubNodes(node.id, node.position);
-    });
+    mainNodesPositioned
+      .filter(node => node.id.toString().indexOf('branch-') !== 0) // 排除分支标题节点
+      .forEach(node => {
+        positionSubNodes(node.id, node.position);
+      });
     
     // 合并所有节点
     return [...mainNodesPositioned, ...subNodesPositioned];
@@ -273,6 +325,57 @@ const ProjectDetails: React.FC = () => {
             }
           });
         }
+      }
+    });
+    
+    // 连接同一分支内的主节点
+    const mainNodes = tasks.filter(task => task.isMainNode);
+    const branchMap = new Map<number, Task[]>();
+    
+    // 按分支对主节点进行分组
+    mainNodes.forEach((task, index) => {
+      const branchIndex = Math.floor(index / 2); // 每个分支最多2个主节点
+      const branchTasks = branchMap.get(branchIndex) || [];
+      branchTasks.push(task);
+      branchMap.set(branchIndex, branchTasks);
+    });
+    
+    // 连接每个分支内的主节点
+    branchMap.forEach((branchTasks) => {
+      for (let i = 0; i < branchTasks.length - 1; i++) {
+        edges.push({
+          id: `e-main-${branchTasks[i]._id}-${branchTasks[i+1]._id}`,
+          source: branchTasks[i]._id,
+          target: branchTasks[i+1]._id,
+          type: 'smoothstep',
+          style: { 
+            stroke: '#d4a76a', // 主线连接使用浅棕色
+            strokeWidth: 2
+          },
+          markerEnd: {
+            type: MarkerType.ArrowClosed,
+            width: 15,
+            height: 15,
+            color: '#d4a76a'
+          }
+        });
+      }
+    });
+    
+    // 连接分支标题和第一个主节点
+    branchMap.forEach((branchTasks, branchIndex) => {
+      if (branchTasks.length > 0) {
+        edges.push({
+          id: `e-branch-${branchIndex}-${branchTasks[0]._id}`,
+          source: `branch-${branchIndex}`,
+          target: branchTasks[0]._id,
+          type: 'smoothstep',
+          style: { 
+            stroke: '#d1d5db',
+            strokeWidth: 1.5,
+            opacity: 0.7
+          }
+        });
       }
     });
     

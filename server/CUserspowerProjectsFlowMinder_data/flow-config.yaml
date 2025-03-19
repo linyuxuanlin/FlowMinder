@@ -19,4 +19,16 @@ nodes:
       title: LDO
       status: in_progress
       filePath: ldo.md
-edges: []
+  - id: 67da41783e784926341f67f7
+    type: taskNode
+    position:
+      x: 0
+      y: 0
+    data:
+      title: tsens readme
+      status: in_progress
+      filePath: tsens_readme.md
+edges:
+  - id: e67da3aeb75049ed27e04bcc5-67da41783e784926341f67f7
+    source: 67da3aeb75049ed27e04bcc5
+    target: 67da41783e784926341f67f7

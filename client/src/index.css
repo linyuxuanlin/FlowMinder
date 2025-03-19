@@ -33,4 +33,13 @@ code {
   flex: 1;
   padding: 1rem;
   overflow-y: auto;
+}
+
+/* 添加按钮显示样式 */
+.node-container:hover .add-button {
+  opacity: 1 !important;
+}
+
+.add-button {
+  cursor: pointer;
 } 
