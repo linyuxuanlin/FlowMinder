@@ -1,7 +1,20 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import ReactFlow, { Background, Controls, ConnectionLineType, Node, Edge, ReactFlowInstance, MarkerType } from 'react-flow-renderer';
+import ReactFlow, { 
+  Background, 
+  Controls, 
+  ConnectionLineType, 
+  Node, 
+  Edge, 
+  ReactFlowInstance,
+  MarkerType,
+  NodeDragHandler,
+  useNodesState,
+  useEdgesState,
+  getIncomers,
+  getOutgoers
+} from 'react-flow-renderer';
 import 'react-flow-renderer/dist/style.css';
 
 interface Project {
@@ -36,13 +49,33 @@ const nodeTypes = {};
 
 const API_URL = 'http://localhost:5000';
 
+// 自定义添加节点按钮组件
+const AddNodeButton = ({ id }: { id: string }) => {
+  const navigate = useNavigate();
+  const { id: projectId } = useParams<{ id: string }>();
+  
+  const handleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigate(`/projects/${projectId}/tasks/new?parentId=${id}`);
+  };
+  
+  return (
+    <div 
+      className="absolute bottom-[-20px] left-1/2 transform -translate-x-1/2 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center cursor-pointer hover:bg-blue-600 z-10"
+      onClick={handleClick}
+    >
+      <span className="text-white font-bold">+</span>
+    </div>
+  );
+};
+
 const ProjectDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [project, setProject] = useState<Project | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [flowNodes, setFlowNodes] = useState<Node[]>([]);
-  const [flowEdges, setFlowEdges] = useState<Edge[]>([]);
+  const [nodes, setNodes, onNodesChange] = useNodesState([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [editingTask, setEditingTask] = useState<Partial<Task> | null>(null);
@@ -52,6 +85,7 @@ const ProjectDetails: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
+  const initialNodePositions = useRef<Map<string, { x: number, y: number }>>(new Map());
 
   useEffect(() => {
     const fetchProjectDetails = async () => {
@@ -64,8 +98,14 @@ const ProjectDetails: React.FC = () => {
         const nodes = createGraphNodes(res.data.tasks);
         const edges = createGraphEdges(res.data.tasks);
         
-        setFlowNodes(nodes);
-        setFlowEdges(edges);
+        setNodes(nodes);
+        setEdges(edges);
+        
+        // 保存初始节点位置
+        nodes.forEach(node => {
+          initialNodePositions.current.set(node.id, { ...node.position });
+        });
+        
         setLoading(false);
       } catch (err) {
         console.error('Error fetching project details:', err);
@@ -77,7 +117,7 @@ const ProjectDetails: React.FC = () => {
     if (id) {
       fetchProjectDetails();
     }
-  }, [id]);
+  }, [id, setNodes, setEdges]);
 
   const createGraphNodes = (tasks: Task[]): Node[] => {
     // 按主线和支线分组
@@ -92,16 +132,16 @@ const ProjectDetails: React.FC = () => {
         task,
         status: task.status 
       },
-      position: { x: 100, y: index * 150 },
+      position: { x: 300, y: index * 200 }, // 从上到下排列
       type: 'default',
+      draggable: true, // 允许拖动
       style: {
-        background: task.status === 'completed' ? '#d1fae5' : 
-                   task.status === 'in_progress' ? '#dbeafe' : 
-                   task.status === 'abandoned' ? '#fee2e2' : '#fff9db',
-        border: '1px solid #ccc',
+        background: '#f5e0c3', // 主节点统一使用浅棕色，无需根据状态变化
+        border: '2px solid #d4a76a', // 主线任务有更粗的边框，颜色与背景协调
         borderRadius: '5px',
         padding: '10px',
-        width: 180
+        width: 180,
+        fontWeight: 'bold', // 主线任务有更粗的字体
       }
     }));
     
@@ -118,13 +158,13 @@ const ProjectDetails: React.FC = () => {
     const subNodesPositioned: Node[] = [];
     
     // 递归为子节点分配位置
-    const positionSubNodes = (parentId: string, depth: number, parentPos: { x: number, y: number }) => {
+    const positionSubNodes = (parentId: string, parentPos: { x: number, y: number }) => {
       const children = subNodesMap.get(parentId) || [];
       const childrenNodes = children.map((task, index) => {
-        // 支线节点向右偏移，Y轴位置在父节点周围分布
+        // 支线节点在父节点左右两侧分布，Y轴位置在父节点下方
         const position = { 
-          x: parentPos.x + 300 * depth, 
-          y: parentPos.y + (index - Math.floor(children.length / 2)) * 120 
+          x: parentPos.x + (index % 2 === 0 ? -180 : 180), 
+          y: parentPos.y + 150
         };
         
         const node = {
@@ -136,19 +176,22 @@ const ProjectDetails: React.FC = () => {
           },
           position,
           type: 'default',
+          draggable: true, // 允许拖动
           style: {
-            background: task.status === 'completed' ? '#d1fae5' : 
-                      task.status === 'in_progress' ? '#dbeafe' : 
-                      task.status === 'abandoned' ? '#fee2e2' : '#fff9db',
+            background: task.status === 'completed' ? '#d1fae5' : // 已完成 - 浅绿色
+                      task.status === 'in_progress' ? '#fef3c7' : // 进行中 - 浅黄色
+                      task.status === 'abandoned' ? '#e5e7eb' : // 已弃用 - 浅灰色
+                      '#fef3c7', // 默认为浅黄色（进行中）
             border: '1px solid #ccc',
             borderRadius: '5px',
             padding: '10px',
-            width: 180
+            width: 180,
+            fontWeight: 'normal',
           }
         };
         
         // 递归处理子节点的子节点
-        positionSubNodes(task._id, depth + 1, position);
+        positionSubNodes(task._id, position);
         
         return node;
       });
@@ -158,10 +201,27 @@ const ProjectDetails: React.FC = () => {
     
     // 以每个主线节点为起点处理其子节点
     mainNodesPositioned.forEach(node => {
-      positionSubNodes(node.id, 1, node.position);
+      positionSubNodes(node.id, node.position);
     });
     
-    return [...mainNodesPositioned, ...subNodesPositioned];
+    // 为每个节点添加自定义按钮
+    const allNodes = [...mainNodesPositioned, ...subNodesPositioned].map(node => {
+      return {
+        ...node,
+        data: {
+          ...node.data,
+          // 添加"+"按钮
+          renderNode: () => (
+            <div className="relative">
+              <div>{node.data.label}</div>
+              <AddNodeButton id={node.id} />
+            </div>
+          )
+        }
+      };
+    });
+    
+    return allNodes;
   };
 
   const createGraphEdges = (tasks: Task[]): Edge[] => {
@@ -170,6 +230,10 @@ const ProjectDetails: React.FC = () => {
     // 为每个有父节点的任务创建边
     tasks.forEach(task => {
       if (task.parentId) {
+        // 查找父任务确定是否是主节点
+        const parentTask = tasks.find(t => t._id === task.parentId);
+        const isParentMainNode = parentTask?.isMainNode || false;
+        
         // 添加从父节点到当前节点的边
         edges.push({
           id: `e-${task.parentId}-${task._id}`,
@@ -178,17 +242,21 @@ const ProjectDetails: React.FC = () => {
           type: 'smoothstep',
           animated: task.status === 'in_progress',
           style: { 
-            stroke: task.status === 'completed' ? '#10b981' : 
-                   task.status === 'in_progress' ? '#3b82f6' : 
-                   task.status === 'abandoned' ? '#ef4444' : '#f59e0b' 
+            stroke: isParentMainNode ? '#d4a76a' : // 如果父节点是主节点，使用浅棕色
+                   task.status === 'completed' ? '#10b981' : // 已完成 - 绿色
+                   task.status === 'in_progress' ? '#f59e0b' : // 进行中 - 黄色
+                   task.status === 'abandoned' ? '#9ca3af' : // 已弃用 - 灰色
+                   '#f59e0b' // 默认为黄色
           },
           markerEnd: {
             type: MarkerType.ArrowClosed,
             width: 15,
             height: 15,
-            color: task.status === 'completed' ? '#10b981' : 
-                  task.status === 'in_progress' ? '#3b82f6' : 
-                  task.status === 'abandoned' ? '#ef4444' : '#f59e0b'
+            color: isParentMainNode ? '#d4a76a' : // 如果父节点是主节点，使用浅棕色
+                  task.status === 'completed' ? '#10b981' : // 已完成 - 绿色
+                  task.status === 'in_progress' ? '#f59e0b' : // 进行中 - 黄色
+                  task.status === 'abandoned' ? '#9ca3af' : // 已弃用 - 灰色
+                  '#f59e0b' // 默认为黄色
           }
         });
         
@@ -200,7 +268,7 @@ const ProjectDetails: React.FC = () => {
             target: task.parentId,
             type: 'smoothstep',
             style: { 
-              stroke: '#10b981',
+              stroke: '#10b981',  // 已完成 - 绿色
               strokeDasharray: '5 5'
             }
           });
@@ -250,8 +318,8 @@ const ProjectDetails: React.FC = () => {
       const updatedTasks = tasks.map(task => 
         task._id === editingTask._id ? { ...task, ...editingTask } : task
       );
-      setFlowNodes(createGraphNodes(updatedTasks));
-      setFlowEdges(createGraphEdges(updatedTasks));
+      setNodes(createGraphNodes(updatedTasks));
+      setEdges(createGraphEdges(updatedTasks));
       
       setSaving(false);
     } catch (err) {
@@ -291,6 +359,25 @@ const ProjectDetails: React.FC = () => {
       setSaving(false);
     }
   };
+
+  // 处理节点拖动结束，复位节点位置
+  const onNodeDragStop: NodeDragHandler = useCallback((_, node) => {
+    const initialPosition = initialNodePositions.current.get(node.id);
+    if (initialPosition) {
+      // 延迟复位，让用户有拖动的体验
+      setTimeout(() => {
+        setNodes(nodes => nodes.map(n => {
+          if (n.id === node.id) {
+            return {
+              ...n,
+              position: initialPosition
+            };
+          }
+          return n;
+        }));
+      }, 300);
+    }
+  }, [setNodes]);
 
   if (loading) {
     return <div className="p-4 text-center">加载中...</div>;
@@ -336,9 +423,12 @@ const ProjectDetails: React.FC = () => {
 
         <div className="flex-1 overflow-hidden" ref={reactFlowWrapper}>
           <ReactFlow
-            nodes={flowNodes}
-            edges={flowEdges}
+            nodes={nodes}
+            edges={edges}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
             onNodeClick={onNodeClick}
+            onNodeDragStop={onNodeDragStop}
             onInit={setReactFlowInstance}
             connectionLineType={ConnectionLineType.SmoothStep}
             fitView
@@ -441,8 +531,8 @@ const ProjectDetails: React.FC = () => {
                 <h3 className="text-sm font-semibold text-gray-700">状态</h3>
                 <span className={`inline-block px-2 py-1 rounded text-sm ${
                   selectedTask.status === 'completed' ? 'bg-green-100 text-green-800' :
-                  selectedTask.status === 'in_progress' ? 'bg-blue-100 text-blue-800' :
-                  selectedTask.status === 'abandoned' ? 'bg-red-100 text-red-800' :
+                  selectedTask.status === 'in_progress' ? 'bg-yellow-100 text-yellow-800' :
+                  selectedTask.status === 'abandoned' ? 'bg-gray-100 text-gray-800' :
                   'bg-yellow-100 text-yellow-800'
                 }`}>
                   {selectedTask.status === 'completed' ? '已完成' :

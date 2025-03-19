@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
 // 添加API_URL常量
@@ -16,9 +16,9 @@ interface Project {
 
 const ProjectsList: React.FC = () => {
   const [projects, setProjects] = useState<Project[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [collapsed, setCollapsed] = useState<boolean>(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchProjects = async () => {
@@ -28,7 +28,7 @@ const ProjectsList: React.FC = () => {
         setLoading(false);
       } catch (err) {
         console.error('Error fetching projects:', err);
-        setError('加载项目失败，请稍后重试。');
+        setError('获取项目列表失败');
         setLoading(false);
       }
     };
@@ -36,90 +36,108 @@ const ProjectsList: React.FC = () => {
     fetchProjects();
   }, []);
 
-  if (collapsed) {
-    return (
-      <div className="fixed left-0 top-0 bottom-0 z-10 flex items-center">
-        <button
-          className="bg-gray-800 text-white p-2 rounded-r-md shadow-lg hover:bg-gray-700"
-          onClick={() => setCollapsed(false)}
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
-          </svg>
-        </button>
-      </div>
-    );
-  }
+  const handleDeleteProject = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation(); // 阻止点击事件冒泡
+    
+    if (!window.confirm('确定要删除此项目吗？这将删除所有相关任务和内容。')) {
+      return;
+    }
+    
+    try {
+      await axios.delete(`${API_URL}/api/projects/${id}`);
+      // 更新本地项目列表
+      setProjects(projects.filter(project => project._id !== id));
+    } catch (err) {
+      console.error('Error deleting project:', err);
+      alert('删除项目失败，请稍后重试');
+    }
+  };
+
+  const handleEditProject = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation(); // 阻止点击事件冒泡
+    navigate(`/projects/${id}/edit`);
+  };
+
+  const handleProjectClick = (id: string) => {
+    navigate(`/projects/${id}`);
+  };
 
   if (loading) {
-    return <div className="p-4 text-center">加载中...</div>;
+    return <div className="p-8 text-center">加载中...</div>;
   }
 
   if (error) {
-    return <div className="p-4 text-center text-red-500">{error}</div>;
+    return <div className="p-8 text-center text-red-500">{error}</div>;
   }
 
   return (
-    <div className="p-4 w-80 min-w-80 border-r h-full overflow-auto relative">
-      <div className="absolute top-0 right-0 p-2">
-        <button
-          onClick={() => setCollapsed(true)}
-          className="text-gray-500 hover:text-gray-700"
+    <div className="container mx-auto p-8">
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-3xl font-bold">我的项目</h1>
+        <Link 
+          to="/projects/new" 
+          className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-lg flex items-center"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+          <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
           </svg>
-        </button>
-      </div>
-
-      <div className="flex justify-between items-center mb-6 pr-8">
-        <h1 className="text-2xl font-bold">项目列表</h1>
-        <Link
-          to="/projects/new"
-          className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded"
-        >
-          创建新项目
+          新建项目
         </Link>
       </div>
 
       {projects.length === 0 ? (
-        <div className="text-center py-8">
-          <p className="text-gray-500 mb-4">暂无项目</p>
-          <Link
-            to="/projects/new"
-            className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded"
+        <div className="text-center py-12 bg-gray-50 rounded-lg">
+          <h3 className="text-lg text-gray-600 mb-4">暂无项目</h3>
+          <Link 
+            to="/projects/new" 
+            className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-lg inline-flex items-center"
           >
+            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+            </svg>
             创建第一个项目
           </Link>
         </div>
       ) : (
-        <div className="space-y-3">
-          {projects.map((project) => (
-            <div
-              key={project._id}
-              className="border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow"
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {projects.map(project => (
+            <div 
+              key={project._id} 
+              className="border rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 bg-white overflow-hidden cursor-pointer"
+              onClick={() => handleProjectClick(project._id)}
             >
-              <div className="p-4">
-                <h2 className="text-xl font-semibold mb-2">{project.name}</h2>
-                <p className="text-gray-600 mb-2 line-clamp-2">{project.description || '暂无描述'}</p>
-                {project.localPath && (
-                  <p className="text-xs text-gray-500 mb-2 truncate">
-                    路径: {project.localPath}
-                  </p>
-                )}
-                <div className="flex justify-between text-sm text-gray-500">
-                  <span>创建: {new Date(project.createdAt).toLocaleDateString()}</span>
-                  <span>更新: {new Date(project.updatedAt).toLocaleDateString()}</span>
+              <div className="p-6">
+                <h2 className="text-xl font-bold mb-2 truncate">{project.name}</h2>
+                <p className="text-gray-600 mb-4 line-clamp-2 h-12">
+                  {project.description || '暂无描述'}
+                </p>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-500">
+                    更新于 {new Date(project.updatedAt).toLocaleDateString()}
+                  </span>
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={(e) => handleEditProject(project._id, e)}
+                      className="p-2 rounded-full hover:bg-gray-100"
+                      title="编辑项目"
+                    >
+                      <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
+                      </svg>
+                    </button>
+                    <button
+                      onClick={(e) => handleDeleteProject(project._id, e)}
+                      className="p-2 rounded-full hover:bg-gray-100"
+                      title="删除项目"
+                    >
+                      <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                      </svg>
+                    </button>
+                  </div>
                 </div>
               </div>
-              <div className="bg-gray-50 p-3 border-t">
-                <Link
-                  to={`/projects/${project._id}`}
-                  className="text-blue-500 hover:text-blue-600"
-                >
-                  查看详情 →
-                </Link>
-              </div>
+              <div className="h-2 bg-blue-500"></div>
             </div>
           ))}
         </div>

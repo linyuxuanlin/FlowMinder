@@ -13,10 +13,14 @@ interface Task {
 
 const CreateTask: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>();
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [isMainNode, setIsMainNode] = useState(false);
-  const [parentId, setParentId] = useState<string | null>(null);
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    status: 'in_progress',
+    isMainNode: false,
+    parentId: '',
+    filePath: ''
+  });
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -42,7 +46,7 @@ const CreateTask: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!title.trim()) {
+    if (!formData.title.trim()) {
       setError('任务标题不能为空');
       return;
     }
@@ -52,12 +56,13 @@ const CreateTask: React.FC = () => {
       setError(null);
       
       const taskData = {
-        title,
-        description,
+        title: formData.title,
+        description: formData.description,
         projectId,
-        isMainNode,
-        parentId: parentId || undefined,
-        status: 'pending'
+        isMainNode: formData.isMainNode,
+        parentId: formData.parentId || undefined,
+        status: formData.status,
+        filePath: formData.filePath
       };
       
       const res = await axios.post(`${API_URL}/api/tasks`, taskData);
@@ -74,7 +79,7 @@ const CreateTask: React.FC = () => {
   // 过滤可用的父任务
   const availableParentTasks = tasks.filter(task => {
     // 如果是主线任务，所有任务都可以作为父任务
-    if (isMainNode) return true;
+    if (formData.isMainNode) return true;
     
     // 如果是支线任务，只有其他非abandoned状态的任务可以作为父任务
     return true; // 这里简化了，实际应该检查任务状态
@@ -98,8 +103,8 @@ const CreateTask: React.FC = () => {
           <input
             type="text"
             id="title"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
+            value={formData.title}
+            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
             className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
             placeholder="输入任务标题"
             required
@@ -112,8 +117,8 @@ const CreateTask: React.FC = () => {
           </label>
           <textarea
             id="description"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
+            value={formData.description}
+            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
             className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
             placeholder="输入任务描述（可选）"
             rows={4}
@@ -125,12 +130,13 @@ const CreateTask: React.FC = () => {
             <input
               type="checkbox"
               id="isMainNode"
-              checked={isMainNode}
+              checked={formData.isMainNode}
               onChange={(e) => {
-                setIsMainNode(e.target.checked);
-                if (e.target.checked) {
-                  setParentId(null); // 如果是主节点，则清除父节点选择
-                }
+                setFormData({ 
+                  ...formData, 
+                  isMainNode: e.target.checked,
+                  parentId: e.target.checked ? '' : formData.parentId 
+                });
               }}
               className="mr-2"
             />
@@ -143,17 +149,17 @@ const CreateTask: React.FC = () => {
           </p>
         </div>
         
-        {!isMainNode && (
+        {!formData.isMainNode && (
           <div className="mb-6">
             <label htmlFor="parentId" className="block text-gray-700 text-sm font-bold mb-2">
               父任务 <span className="text-red-500">*</span>
             </label>
             <select
               id="parentId"
-              value={parentId || ''}
-              onChange={(e) => setParentId(e.target.value || null)}
+              value={formData.parentId}
+              onChange={(e) => setFormData({ ...formData, parentId: e.target.value || '' })}
               className="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-              required={!isMainNode}
+              required={!formData.isMainNode}
             >
               <option value="">-- 选择父任务 --</option>
               {availableParentTasks.map(task => (
@@ -178,7 +184,7 @@ const CreateTask: React.FC = () => {
           </button>
           <button
             type="submit"
-            disabled={loading || (!isMainNode && !parentId)}
+            disabled={loading || (!formData.isMainNode && !formData.parentId)}
             className="py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
           >
             {loading ? '创建中...' : '创建任务'}
