@@ -61,7 +61,7 @@ const CreateTask: React.FC = () => {
         projectId,
         isMainNode: formData.isMainNode,
         parentId: formData.parentId || undefined,
-        status: formData.status,
+        status: formData.isMainNode ? 'in_progress' : formData.status,
         filePath: formData.filePath
       };
       
@@ -145,7 +145,7 @@ const CreateTask: React.FC = () => {
             </label>
           </div>
           <p className="text-xs text-gray-500 mt-1">
-            主线任务将显示在任务流的最左侧，可以向右派生出支线任务。
+            主线任务将显示在任务流的中央主线上，支线任务会从主线任务派生出来。主线任务无需设置状态。
           </p>
         </div>
         
@@ -171,6 +171,24 @@ const CreateTask: React.FC = () => {
             <p className="text-xs text-gray-500 mt-1">
               支线任务必须选择一个父任务。支线任务完成后将合并回父任务（除非标记为已弃用）。
             </p>
+          </div>
+        )}
+        
+        {!formData.isMainNode && (
+          <div className="mb-6">
+            <label htmlFor="status" className="block text-gray-700 text-sm font-bold mb-2">
+              任务状态
+            </label>
+            <select
+              id="status"
+              value={formData.status}
+              onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+              className="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+            >
+              <option value="in_progress">进行中</option>
+              <option value="completed">已完成</option>
+              <option value="abandoned">已弃用</option>
+            </select>
           </div>
         )}
         

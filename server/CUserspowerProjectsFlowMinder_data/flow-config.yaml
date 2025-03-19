@@ -10,4 +10,13 @@ nodes:
       title: TSENS
       status: in_progress
       filePath: tsens.md
+  - id: 67da3d4a5e711d4a12a7aa84
+    type: mainNode
+    position:
+      x: 0
+      y: 0
+    data:
+      title: LDO
+      status: in_progress
+      filePath: ldo.md
 edges: []

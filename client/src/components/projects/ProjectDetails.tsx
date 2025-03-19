@@ -16,6 +16,7 @@ import ReactFlow, {
   getOutgoers
 } from 'react-flow-renderer';
 import 'react-flow-renderer/dist/style.css';
+import Sidebar from '../layout/Sidebar';
 
 interface Project {
   _id: string;
@@ -130,7 +131,8 @@ const ProjectDetails: React.FC = () => {
       data: { 
         label: task.title,
         task,
-        status: task.status 
+        // 主线任务不显示状态
+        isMainNode: true
       },
       position: { x: 300, y: index * 200 }, // 从上到下排列
       type: 'default',
@@ -393,6 +395,9 @@ const ProjectDetails: React.FC = () => {
 
   return (
     <div className="flex flex-1 h-full overflow-hidden">
+      {/* 添加左侧边栏 */}
+      <Sidebar />
+
       <div className="flex-1 flex flex-col h-full overflow-hidden">
         <div className="p-4 border-b bg-white z-10">
           <div className="flex justify-between items-center">
@@ -488,24 +493,27 @@ const ProjectDetails: React.FC = () => {
                 />
               </div>
 
-              <div className="mb-4">
-                <label className="block text-gray-700 text-sm font-bold mb-2">
-                  任务状态
-                </label>
-                <select
-                  value={editingTask.status}
-                  onChange={(e) => setEditingTask({ 
-                    ...editingTask, 
-                    status: e.target.value as 'pending' | 'in_progress' | 'completed' | 'abandoned' 
-                  })}
-                  className="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                >
-                  <option value="pending">待处理</option>
-                  <option value="in_progress">进行中</option>
-                  <option value="completed">已完成</option>
-                  <option value="abandoned">已弃用</option>
-                </select>
-              </div>
+              {/* 只有非主线任务才显示状态选择器 */}
+              {!editingTask.isMainNode && (
+                <div className="mb-4">
+                  <label className="block text-gray-700 text-sm font-bold mb-2">
+                    任务状态
+                  </label>
+                  <select
+                    value={editingTask.status}
+                    onChange={(e) => setEditingTask({ 
+                      ...editingTask, 
+                      status: e.target.value as 'pending' | 'in_progress' | 'completed' | 'abandoned' 
+                    })}
+                    className="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                  >
+                    <option value="pending">待处理</option>
+                    <option value="in_progress">进行中</option>
+                    <option value="completed">已完成</option>
+                    <option value="abandoned">已弃用</option>
+                  </select>
+                </div>
+              )}
             </div>
           ) : (
             <div>
@@ -527,20 +535,23 @@ const ProjectDetails: React.FC = () => {
                 </div>
               </div>
 
-              <div className="mb-4">
-                <h3 className="text-sm font-semibold text-gray-700">状态</h3>
-                <span className={`inline-block px-2 py-1 rounded text-sm ${
-                  selectedTask.status === 'completed' ? 'bg-green-100 text-green-800' :
-                  selectedTask.status === 'in_progress' ? 'bg-yellow-100 text-yellow-800' :
-                  selectedTask.status === 'abandoned' ? 'bg-gray-100 text-gray-800' :
-                  'bg-yellow-100 text-yellow-800'
-                }`}>
-                  {selectedTask.status === 'completed' ? '已完成' :
-                   selectedTask.status === 'in_progress' ? '进行中' :
-                   selectedTask.status === 'abandoned' ? '已弃用' :
-                   '待处理'}
-                </span>
-              </div>
+              {/* 只有非主线任务才显示状态 */}
+              {!selectedTask.isMainNode && (
+                <div className="mb-4">
+                  <h3 className="text-sm font-semibold text-gray-700">状态</h3>
+                  <span className={`inline-block px-2 py-1 rounded text-sm ${
+                    selectedTask.status === 'completed' ? 'bg-green-100 text-green-800' :
+                    selectedTask.status === 'in_progress' ? 'bg-yellow-100 text-yellow-800' :
+                    selectedTask.status === 'abandoned' ? 'bg-gray-100 text-gray-800' :
+                    'bg-yellow-100 text-yellow-800'
+                  }`}>
+                    {selectedTask.status === 'completed' ? '已完成' :
+                     selectedTask.status === 'in_progress' ? '进行中' :
+                     selectedTask.status === 'abandoned' ? '已弃用' :
+                     '待处理'}
+                  </span>
+                </div>
+              )}
 
               {selectedTask.description && (
                 <div className="mb-4">
