@@ -45,8 +45,19 @@ interface FlowConfig {
   edges: any[];
 }
 
-// 自定义节点类型
-const nodeTypes = {};
+// 自定义节点组件，包含添加按钮
+const CustomNode = ({ data }: { data: any }) => {
+  return (
+    <div className="relative p-3">
+      <div className="text-center font-medium mb-1">
+        {data.label}
+      </div>
+      {data.task && data.task._id && (
+        <AddNodeButton id={data.task._id} />
+      )}
+    </div>
+  );
+};
 
 const API_URL = 'http://localhost:5000';
 
@@ -57,15 +68,20 @@ const AddNodeButton = ({ id }: { id: string }) => {
   
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
+    e.preventDefault();
+    console.log('Adding task for parent:', id);
     navigate(`/projects/${projectId}/tasks/new?parentId=${id}`);
   };
   
   return (
-    <div 
-      className="absolute bottom-[-20px] left-1/2 transform -translate-x-1/2 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center cursor-pointer hover:bg-blue-600 z-10"
-      onClick={handleClick}
-    >
-      <span className="text-white font-bold">+</span>
+    <div className="flex justify-center mt-1">
+      <button 
+        className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center cursor-pointer hover:bg-blue-600 z-20 shadow-md"
+        onClick={handleClick}
+        title="添加子任务"
+      >
+        <span className="text-white font-bold">+</span>
+      </button>
     </div>
   );
 };
@@ -87,6 +103,11 @@ const ProjectDetails: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const initialNodePositions = useRef<Map<string, { x: number, y: number }>>(new Map());
+
+  // 设置自定义节点类型
+  const nodeTypes = {
+    default: CustomNode
+  };
 
   useEffect(() => {
     const fetchProjectDetails = async () => {
@@ -125,7 +146,7 @@ const ProjectDetails: React.FC = () => {
     const mainNodes = tasks.filter(task => task.isMainNode);
     const subNodes = tasks.filter(task => !task.isMainNode);
     
-    // 为主线节点分配Y轴位置（垂直排列）
+    // 为主线节点分配X轴位置（水平排列）
     const mainNodesPositioned = mainNodes.map((task, index) => ({
       id: task._id,
       data: { 
@@ -134,16 +155,17 @@ const ProjectDetails: React.FC = () => {
         // 主线任务不显示状态
         isMainNode: true
       },
-      position: { x: 300, y: index * 200 }, // 从上到下排列
+      position: { x: index * 250, y: 100 }, // 从左到右排列
       type: 'default',
       draggable: true, // 允许拖动
       style: {
         background: '#f5e0c3', // 主节点统一使用浅棕色，无需根据状态变化
         border: '2px solid #d4a76a', // 主线任务有更粗的边框，颜色与背景协调
-        borderRadius: '5px',
+        borderRadius: '8px',
         padding: '10px',
         width: 180,
         fontWeight: 'bold', // 主线任务有更粗的字体
+        boxShadow: '0 2px 5px rgba(0,0,0,0.1)'
       }
     }));
     
@@ -159,14 +181,14 @@ const ProjectDetails: React.FC = () => {
     
     const subNodesPositioned: Node[] = [];
     
-    // 递归为子节点分配位置
-    const positionSubNodes = (parentId: string, parentPos: { x: number, y: number }) => {
+    // 递归为子节点分配位置，任务步骤是从上到下的
+    const positionSubNodes = (parentId: string, parentPos: { x: number, y: number }, depth: number = 0) => {
       const children = subNodesMap.get(parentId) || [];
       const childrenNodes = children.map((task, index) => {
-        // 支线节点在父节点左右两侧分布，Y轴位置在父节点下方
+        // 支线节点在父节点下方排列
         const position = { 
-          x: parentPos.x + (index % 2 === 0 ? -180 : 180), 
-          y: parentPos.y + 150
+          x: parentPos.x, 
+          y: parentPos.y + 150 + (depth * 50) // 从上到下排列，深度越大位置越下
         };
         
         const node = {
@@ -185,15 +207,16 @@ const ProjectDetails: React.FC = () => {
                       task.status === 'abandoned' ? '#e5e7eb' : // 已弃用 - 浅灰色
                       '#fef3c7', // 默认为浅黄色（进行中）
             border: '1px solid #ccc',
-            borderRadius: '5px',
+            borderRadius: '8px',
             padding: '10px',
             width: 180,
             fontWeight: 'normal',
+            boxShadow: '0 2px 5px rgba(0,0,0,0.1)'
           }
         };
         
         // 递归处理子节点的子节点
-        positionSubNodes(task._id, position);
+        positionSubNodes(task._id, position, depth + 1);
         
         return node;
       });
@@ -206,24 +229,8 @@ const ProjectDetails: React.FC = () => {
       positionSubNodes(node.id, node.position);
     });
     
-    // 为每个节点添加自定义按钮
-    const allNodes = [...mainNodesPositioned, ...subNodesPositioned].map(node => {
-      return {
-        ...node,
-        data: {
-          ...node.data,
-          // 添加"+"按钮
-          renderNode: () => (
-            <div className="relative">
-              <div>{node.data.label}</div>
-              <AddNodeButton id={node.id} />
-            </div>
-          )
-        }
-      };
-    });
-    
-    return allNodes;
+    // 合并所有节点
+    return [...mainNodesPositioned, ...subNodesPositioned];
   };
 
   const createGraphEdges = (tasks: Task[]): Edge[] => {
