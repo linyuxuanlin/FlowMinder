@@ -1,0 +1,22 @@
+name: Laguna
+description: ""
+nodes:
+  - id: 67da2c7e0750ddb20a8f2f36
+    type: mainNode
+    position:
+      x: 0
+      y: 0
+    data:
+      title: TSENS
+      status: pending
+      filePath: tsens.md
+  - id: 67da2ca10750ddb20a8f2f49
+    type: mainNode
+    position:
+      x: 0
+      y: 0
+    data:
+      title: LDO
+      status: pending
+      filePath: ldo.md
+edges: []
