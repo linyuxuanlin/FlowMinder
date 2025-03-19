@@ -55,6 +55,14 @@ router.post('/', async (req, res) => {
     // 写入文件
     await fs.writeFile(filePath, initialContent);
     
+    // 检查父任务是否存在
+    if (parentId && !isMainNode) {
+      const parentTask = await Task.findById(parentId);
+      if (!parentTask) {
+        return res.status(404).json({ message: '父任务不存在' });
+      }
+    }
+    
     // 创建任务
     const task = new Task({
       title,
@@ -129,12 +137,16 @@ router.get('/:id', async (req, res) => {
 // 更新任务
 router.put('/:id', async (req, res) => {
   const { title, description, status, position } = req.body;
+  const oldStatus = req.query.oldStatus; // 获取旧状态以便检测状态变化
   
   try {
     const task = await Task.findById(req.params.id);
     if (!task) {
       return res.status(404).json({ message: '任务未找到' });
     }
+    
+    const statusChanged = status && task.status !== status;
+    const oldTaskStatus = task.status;
     
     // 更新任务信息
     if (title) task.title = title;
@@ -181,6 +193,34 @@ router.put('/:id', async (req, res) => {
         if (title) config.nodes[nodeIndex].data.title = title;
         if (status) config.nodes[nodeIndex].data.status = status;
         if (position) config.nodes[nodeIndex].position = position;
+      }
+      
+      // 如果状态变为已完成，且不是已放弃状态，需要添加合并回父节点的边
+      if (statusChanged && status === 'completed' && task.parentId && oldTaskStatus !== 'completed') {
+        // 添加从当前节点回到父节点的边（表示合并）
+        const mergeEdgeId = `e-${task._id}-${task.parentId}`;
+        // 检查边是否已存在
+        const edgeExists = config.edges.some(edge => edge.id === mergeEdgeId);
+        if (!edgeExists) {
+          config.edges.push({
+            id: mergeEdgeId,
+            source: task._id.toString(),
+            target: task.parentId.toString(),
+            type: 'smoothstep',
+            style: { 
+              stroke: '#10b981',
+              strokeDasharray: '5 5'
+            }
+          });
+        }
+      }
+      
+      // 如果状态从已完成变为其他状态或变为已放弃，需要移除合并边
+      if ((statusChanged && oldTaskStatus === 'completed' && status !== 'completed') || 
+          (statusChanged && status === 'abandoned')) {
+        // 移除从当前节点回到父节点的边
+        const mergeEdgeId = `e-${task._id}-${task.parentId}`;
+        config.edges = config.edges.filter(edge => edge.id !== mergeEdgeId);
       }
       
       // 保存配置

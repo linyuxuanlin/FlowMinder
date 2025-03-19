@@ -13,6 +13,9 @@ services:
       - server
     environment:
       - REACT_APP_API_URL=http://localhost:5000
+      - CI=false
+      - CHOKIDAR_USEPOLLING=true
+      - WATCHPACK_POLLING=true
     networks:
       - flowminder-network
 

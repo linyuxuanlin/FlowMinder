@@ -2,23 +2,28 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 
+// 添加API_URL常量
+const API_URL = 'http://localhost:5000';
+
 interface Project {
   _id: string;
   name: string;
   description: string;
   createdAt: string;
   updatedAt: string;
+  localPath?: string;
 }
 
 const ProjectsList: React.FC = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [collapsed, setCollapsed] = useState<boolean>(false);
 
   useEffect(() => {
     const fetchProjects = async () => {
       try {
-        const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/projects`);
+        const res = await axios.get(`${API_URL}/api/projects`);
         setProjects(res.data);
         setLoading(false);
       } catch (err) {
@@ -31,6 +36,21 @@ const ProjectsList: React.FC = () => {
     fetchProjects();
   }, []);
 
+  if (collapsed) {
+    return (
+      <div className="fixed left-0 top-0 bottom-0 z-10 flex items-center">
+        <button
+          className="bg-gray-800 text-white p-2 rounded-r-md shadow-lg hover:bg-gray-700"
+          onClick={() => setCollapsed(false)}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+          </svg>
+        </button>
+      </div>
+    );
+  }
+
   if (loading) {
     return <div className="p-4 text-center">加载中...</div>;
   }
@@ -40,8 +60,19 @@ const ProjectsList: React.FC = () => {
   }
 
   return (
-    <div className="p-4">
-      <div className="flex justify-between items-center mb-6">
+    <div className="p-4 w-80 min-w-80 border-r h-full overflow-auto relative">
+      <div className="absolute top-0 right-0 p-2">
+        <button
+          onClick={() => setCollapsed(true)}
+          className="text-gray-500 hover:text-gray-700"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+          </svg>
+        </button>
+      </div>
+
+      <div className="flex justify-between items-center mb-6 pr-8">
         <h1 className="text-2xl font-bold">项目列表</h1>
         <Link
           to="/projects/new"
@@ -62,7 +93,7 @@ const ProjectsList: React.FC = () => {
           </Link>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="space-y-3">
           {projects.map((project) => (
             <div
               key={project._id}
@@ -70,7 +101,12 @@ const ProjectsList: React.FC = () => {
             >
               <div className="p-4">
                 <h2 className="text-xl font-semibold mb-2">{project.name}</h2>
-                <p className="text-gray-600 mb-4 line-clamp-2">{project.description || '暂无描述'}</p>
+                <p className="text-gray-600 mb-2 line-clamp-2">{project.description || '暂无描述'}</p>
+                {project.localPath && (
+                  <p className="text-xs text-gray-500 mb-2 truncate">
+                    路径: {project.localPath}
+                  </p>
+                )}
                 <div className="flex justify-between text-sm text-gray-500">
                   <span>创建: {new Date(project.createdAt).toLocaleDateString()}</span>
                   <span>更新: {new Date(project.updatedAt).toLocaleDateString()}</span>

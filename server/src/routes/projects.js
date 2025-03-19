@@ -18,20 +18,28 @@ router.get('/', async (req, res) => {
 
 // 创建新项目
 router.post('/', async (req, res) => {
-  const { name, description } = req.body;
+  const { name, description, localPath } = req.body;
   
   try {
-    // 创建项目目录
-    const projectsDir = process.env.PROJECTS_DIR || path.join(__dirname, '../../../projects');
-    const projectDir = path.join(projectsDir, name.replace(/[^a-z0-9]/gi, '_').toLowerCase());
-    
-    // 确保目录不存在，否则返回错误
-    if (await fs.pathExists(projectDir)) {
-      return res.status(400).json({ message: '项目名称已存在' });
+    // 验证本地路径
+    if (!localPath) {
+      return res.status(400).json({ message: '本地路径不能为空' });
     }
     
-    // 创建项目目录和配置文件
-    await fs.ensureDir(projectDir);
+    // 检查路径是否存在，如果不存在则创建
+    try {
+      await fs.ensureDir(localPath);
+    } catch (err) {
+      return res.status(400).json({ message: '无法创建或访问本地路径' });
+    }
+    
+    // 创建项目目录
+    const projectDir = localPath;
+    
+    // 确保目录不存在，否则返回错误
+    if (await fs.pathExists(path.join(projectDir, 'flow-config.yaml'))) {
+      return res.status(400).json({ message: '项目配置文件已存在于该路径' });
+    }
     
     // 创建配置文件
     const configPath = path.join(projectDir, 'flow-config.yaml');
@@ -48,7 +56,8 @@ router.post('/', async (req, res) => {
     const project = new Project({
       name,
       description,
-      configPath: configPath
+      configPath,
+      localPath
     });
     
     const savedProject = await project.save();
@@ -117,6 +126,77 @@ router.put('/:id', async (req, res) => {
   }
 });
 
+// 更新项目本地路径
+router.put('/:id/path', async (req, res) => {
+  const { newPath } = req.body;
+  
+  try {
+    const project = await Project.findById(req.params.id);
+    if (!project) {
+      return res.status(404).json({ message: '项目未找到' });
+    }
+    
+    // 验证新路径
+    if (!newPath) {
+      return res.status(400).json({ message: '新路径不能为空' });
+    }
+    
+    const oldPath = project.localPath;
+    
+    // 如果路径相同，不需要更新
+    if (oldPath === newPath) {
+      return res.json({ message: '路径未变更' });
+    }
+    
+    // 检查并创建新路径
+    try {
+      await fs.ensureDir(newPath);
+    } catch (err) {
+      return res.status(400).json({ message: '无法创建或访问新路径' });
+    }
+    
+    // 复制旧路径下的所有文件到新路径
+    try {
+      await fs.copy(oldPath, newPath, {
+        overwrite: false,
+        errorOnExist: false
+      });
+    } catch (err) {
+      return res.status(500).json({ message: '复制文件失败: ' + err.message });
+    }
+    
+    // 更新项目中的配置文件路径
+    const oldConfigPath = project.configPath;
+    const newConfigPath = path.join(newPath, path.basename(oldConfigPath));
+    
+    // 更新数据库中的路径
+    project.localPath = newPath;
+    project.configPath = newConfigPath;
+    project.updatedAt = Date.now();
+    
+    // 更新所有任务的文件路径
+    const tasks = await Task.find({ projectId: project._id });
+    for (const task of tasks) {
+      const oldTaskPath = task.filePath;
+      const relativePath = path.relative(oldPath, oldTaskPath);
+      const newTaskPath = path.join(newPath, relativePath);
+      
+      task.filePath = newTaskPath;
+      task.updatedAt = Date.now();
+      await task.save();
+    }
+    
+    const updatedProject = await project.save();
+    
+    res.json({
+      message: '本地路径已更新',
+      project: updatedProject
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 // 删除项目
 router.delete('/:id', async (req, res) => {
   try {
@@ -124,10 +204,6 @@ router.delete('/:id', async (req, res) => {
     if (!project) {
       return res.status(404).json({ message: '项目未找到' });
     }
-    
-    // 删除项目目录
-    const projectDir = path.dirname(project.configPath);
-    await fs.remove(projectDir);
     
     // 删除相关任务
     await Task.deleteMany({ projectId: project._id });

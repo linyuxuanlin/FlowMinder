@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import axios from 'axios';
 
+// 添加API_URL常量
+const API_URL = 'http://localhost:5000';
+
 interface Project {
   _id: string;
   name: string;
@@ -14,7 +17,7 @@ const Sidebar: React.FC = () => {
   useEffect(() => {
     const fetchProjects = async () => {
       try {
-        const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/projects`);
+        const res = await axios.get(`${API_URL}/api/projects`);
         setProjects(res.data);
         setLoading(false);
       } catch (err) {
