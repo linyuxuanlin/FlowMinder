@@ -176,4 +176,27 @@ code {
 /* 箭头样式 */
 .react-flow__edge-path-marker {
   fill: #555;
+}
+
+/* 分支按钮样式 */
+.branch-btn {
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 150px;
+  display: inline-block;
+}
+
+.branch-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+/* 确保分支名在按钮内部正确截断 */
+.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 } 

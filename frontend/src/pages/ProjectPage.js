@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { FiMenu, FiMoreVertical, FiPlus } from 'react-icons/fi';
-import { getProject, createBranch, deleteProject } from '../services/api';
+import { FiMenu, FiMoreVertical, FiPlus, FiEdit } from 'react-icons/fi';
+import { getProject, createBranch, deleteProject, updateBranch } from '../services/api';
 import Sidebar from '../components/Sidebar';
 import ProjectFlow from '../components/ProjectFlow';
 import NodeProperties from '../components/NodeProperties';
@@ -21,6 +21,8 @@ const ProjectPage = () => {
   const [selectedBranch, setSelectedBranch] = useState(null);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [lastFetchTime, setLastFetchTime] = useState(0);
+  const [showBranchRenameForm, setShowBranchRenameForm] = useState(false);
+  const [branchToRename, setBranchToRename] = useState(null);
 
   // 获取项目数据，移除selectedBranch依赖，避免循环请求
   const fetchProject = useCallback(async (skipSettingBranch = false) => {
@@ -115,6 +117,33 @@ const ProjectPage = () => {
     }
   };
 
+  // 处理分支重命名
+  const handleBranchRename = async (branchName) => {
+    if (!branchToRename) return;
+    
+    try {
+      console.log(`Renaming branch ${branchToRename.id} to "${branchName}"`);
+      await updateBranch(branchToRename.id, { name: branchName });
+      setShowBranchRenameForm(false);
+      setBranchToRename(null);
+      
+      // 重新获取项目数据
+      fetchProject(true);
+    } catch (error) {
+      console.error('Error renaming branch:', error);
+      if (error.response) {
+        console.error('Response data:', error.response.data);
+        console.error('Response status:', error.response.status);
+      }
+    }
+  };
+
+  // 打开分支重命名对话框
+  const openBranchRenameForm = (branch) => {
+    setBranchToRename(branch);
+    setShowBranchRenameForm(true);
+  };
+
   if (loading && !project) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -207,33 +236,49 @@ const ProjectPage = () => {
             {project.branches.length > 0 ? (
               <>
                 {/* 分支选择器 */}
-                <div className="px-4 py-2 border-b border-gray-200 flex items-center justify-between">
-                  <div className="flex space-x-2 overflow-x-auto">
+                <div className="px-4 py-2 border-b border-gray-200">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-md font-semibold text-gray-700">分支</h3>
+                    <button
+                      onClick={() => setShowBranchForm(true)}
+                      className="flex items-center gap-1 text-sm text-primary hover:text-opacity-80"
+                    >
+                      <FiPlus /> 添加分支
+                    </button>
+                  </div>
+                  
+                  <div className="branch-container">
                     {project.branches.map(branch => (
-                      <button
-                        key={branch.id}
-                        onClick={() => handleBranchChange(branch)}
-                        className={`px-4 py-1 rounded-md ${
-                          selectedBranch && selectedBranch.id === branch.id 
-                            ? 'bg-primary text-white' 
-                            : 'bg-gray-100 hover:bg-gray-200'
-                        }`}
-                      >
-                        {branch.name}
-                      </button>
+                      <div key={branch.id} className="relative group mb-2">
+                        <button
+                          onClick={() => handleBranchChange(branch)}
+                          className={`px-4 py-1 rounded-md branch-btn ${
+                            selectedBranch && selectedBranch.id === branch.id 
+                              ? 'bg-primary text-white' 
+                              : 'bg-gray-100 hover:bg-gray-200'
+                          }`}
+                        >
+                          {branch.name}
+                        </button>
+                        
+                        {/* 分支操作按钮 */}
+                        <button 
+                          className="opacity-0 group-hover:opacity-100 absolute -right-2 -top-2 bg-white rounded-full p-1 shadow-sm text-gray-500 hover:text-primary transition-opacity"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openBranchRenameForm(branch);
+                          }}
+                        >
+                          <FiEdit size={14} />
+                        </button>
+                      </div>
                     ))}
                   </div>
-                  <button
-                    onClick={() => setShowBranchForm(true)}
-                    className="flex items-center gap-1 text-sm text-primary hover:text-opacity-80"
-                  >
-                    <FiPlus /> 添加分支
-                  </button>
                 </div>
                 
                 {selectedBranch && (
                   <ProjectFlow 
-                    key={selectedBranch.id} // 添加key以确保分支切换时组件重新挂载
+                    key={selectedBranch.id}
                     project={project} 
                     selectedBranch={selectedBranch}
                     onNodeSelect={handleNodeClick}
@@ -269,6 +314,20 @@ const ProjectPage = () => {
         <BranchForm 
           onClose={() => setShowBranchForm(false)} 
           onSubmit={handleAddBranch}
+        />
+      )}
+
+      {/* 分支重命名表单 */}
+      {showBranchRenameForm && (
+        <BranchForm 
+          initialName={branchToRename?.name || ''}
+          title="重命名分支"
+          submitLabel="重命名"
+          onClose={() => {
+            setShowBranchRenameForm(false);
+            setBranchToRename(null);
+          }} 
+          onSubmit={handleBranchRename}
         />
       )}
 

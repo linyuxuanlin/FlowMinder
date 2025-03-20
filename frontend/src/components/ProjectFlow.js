@@ -107,8 +107,67 @@ const ProjectFlow = ({ project, selectedBranch, onNodeSelect }) => {
       setDataLoaded(false);
       console.log(`Loading nodes for branch: ${selectedBranch.id}`);
       
-      const branchNodes = await getNodes(selectedBranch.id);
+      let branchNodes = await getNodes(selectedBranch.id);
       console.log('Received branch nodes:', branchNodes);
+      
+      // 如果分支没有节点，自动创建一个起始节点
+      if (!branchNodes || branchNodes.length === 0) {
+        console.log('Empty branch detected, creating Start node automatically');
+        try {
+          const startNodeData = {
+            name: 'Start',
+            description: '起始节点',
+            branch_id: selectedBranch.id,
+            parent_id: null,
+            level: 0,
+            position_x: 250,
+            position_y: 100,
+            status: 'in-progress'
+          };
+          
+          const result = await createNode(selectedBranch.id, startNodeData);
+          console.log('Start node created automatically:', result);
+          
+          // 等待100毫秒确保数据已经写入
+          await new Promise(resolve => setTimeout(resolve, 100));
+          
+          // 重新获取节点
+          const updatedNodes = await getNodes(selectedBranch.id);
+          console.log('Updated nodes after creating Start node:', updatedNodes);
+          
+          if (updatedNodes && updatedNodes.length > 0) {
+            branchNodes = updatedNodes;
+          } else {
+            // 如果仍然没有获取到节点，手动创建一个本地节点
+            console.log('No nodes returned from API, creating local fallback node');
+            branchNodes = [{
+              id: 'temp-start-' + Date.now(),
+              name: 'Start',
+              description: '起始节点',
+              branch_id: selectedBranch.id,
+              parent_id: null,
+              level: 0,
+              position_x: 250,
+              position_y: 100,
+              status: 'in-progress'
+            }];
+          }
+        } catch (error) {
+          console.error('Error creating start node:', error);
+          // 创建失败时的后备方案：本地创建一个临时节点
+          branchNodes = [{
+            id: 'temp-start-' + Date.now(),
+            name: 'Start',
+            description: '起始节点',
+            branch_id: selectedBranch.id,
+            parent_id: null,
+            level: 0,
+            position_x: 250,
+            position_y: 100,
+            status: 'in-progress'
+          }];
+        }
+      }
       
       if (branchNodes && branchNodes.length > 0) {
         // 按层级和垂直位置排序节点

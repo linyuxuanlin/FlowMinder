@@ -17,6 +17,21 @@
           "position_y": 0.0
         }
       ]
+    },
+    {
+      "id": "be0d1b68-fc06-4249-85e9-e427b24625ea",
+      "name": "2",
+      "nodes": [
+        {
+          "id": "7c1577f7-34ab-4271-8630-9538f5c26bc4",
+          "name": "Start",
+          "level": 1,
+          "status": "in_progress",
+          "parent_id": null,
+          "position_x": 200.0,
+          "position_y": 100.0
+        }
+      ]
     }
   ]
 }
