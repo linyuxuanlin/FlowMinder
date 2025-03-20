@@ -33,7 +33,7 @@ class BranchBase(BaseModel):
     name: str
 
 class BranchCreate(BranchBase):
-    project_id: str
+    project_id: Optional[str] = None
 
 class BranchUpdate(BaseModel):
     name: Optional[str] = None
@@ -51,7 +51,7 @@ class BranchWithNodes(BranchResponse):
 # Project Schemas
 class ProjectBase(BaseModel):
     name: str
-    path: str
+    path: Optional[str] = None
 
 class ProjectCreate(ProjectBase):
     pass

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { FiMenu, FiMoreVertical, FiPlus } from 'react-icons/fi';
+import { FiMenu, FiChevronLeft, FiMoreVertical, FiPlus } from 'react-icons/fi';
 import { getProject, createBranch } from '../services/api';
 import Sidebar from '../components/Sidebar';
 import ProjectFlow from '../components/ProjectFlow';
@@ -47,11 +47,17 @@ const ProjectPage = () => {
 
   const handleAddBranch = async (branchName) => {
     try {
+      console.log("Creating branch with name:", branchName);
       await createBranch(projectId, { name: branchName });
       setShowBranchForm(false);
       fetchProject();
     } catch (error) {
       console.error('Error creating branch:', error);
+      // 显示更详细的错误信息
+      if (error.response) {
+        console.error('Response data:', error.response.data);
+        console.error('Response status:', error.response.status);
+      }
     }
   };
 

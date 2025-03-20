@@ -96,8 +96,15 @@ def get_branches(project_id: str, db: Session = Depends(get_db)):
 
 @app.post("/api/projects/{project_id}/branches", response_model=schemas.BranchResponse)
 def create_branch(project_id: str, branch: schemas.BranchCreate, db: Session = Depends(get_db)):
-    branch.project_id = project_id
-    return branch_service.create_branch(db, branch)
+    # 打印接收到的数据，帮助调试
+    print(f"Creating branch with project_id: {project_id}, branch data: {branch}")
+    
+    # 确保设置了project_id字段
+    branch_data = branch.model_dump()
+    branch_data["project_id"] = project_id
+    branch_obj = schemas.BranchCreate(**branch_data)
+    
+    return branch_service.create_branch(db, branch_obj)
 
 @app.put("/api/branches/{branch_id}", response_model=schemas.BranchResponse)
 def update_branch(branch_id: str, branch: schemas.BranchUpdate, db: Session = Depends(get_db)):

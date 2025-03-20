@@ -30,8 +30,8 @@ const ProjectForm = ({ project, onClose, onProjectCreated }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!formData.name.trim() || !formData.path.trim()) {
-      setError('项目名称和本地路径不能为空');
+    if (!formData.name.trim()) {
+      setError('项目名称不能为空');
       return;
     }
 
@@ -39,12 +39,22 @@ const ProjectForm = ({ project, onClose, onProjectCreated }) => {
       setIsSubmitting(true);
       setError('');
 
+      // 准备提交数据，path可以为空
+      const submitData = {
+        name: formData.name
+      };
+      
+      // 只有当path不为空时添加到提交数据
+      if (formData.path && formData.path.trim()) {
+        submitData.path = formData.path;
+      }
+
       if (project) {
         // 更新已有项目
-        await updateProject(project.id, formData);
+        await updateProject(project.id, submitData);
       } else {
         // 创建新项目
-        await createProject(formData);
+        await createProject(submitData);
       }
 
       onProjectCreated();

@@ -15,7 +15,7 @@ def create_project(db: Session, project: ProjectCreate):
     db_project = Project(
         id=str(uuid.uuid4()),
         name=project.name,
-        path=project.path
+        path=project.path if project.path else os.path.join(os.getcwd(), "projects")
     )
     db.add(db_project)
     
@@ -40,7 +40,7 @@ def create_project(db: Session, project: ProjectCreate):
     db.refresh(db_project)
     
     # 创建本地项目文件
-    if project.path:
+    if db_project.path:
         create_local_project_file(db_project)
     
     return db_project

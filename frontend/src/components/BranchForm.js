@@ -18,6 +18,7 @@ const BranchForm = ({ onClose, onSubmit }) => {
     setError('');
     
     try {
+      console.log("Submitting branch name:", branchName);
       onSubmit(branchName);
     } catch (error) {
       setError('创建分支失败');
