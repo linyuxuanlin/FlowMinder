@@ -1,7 +1,7 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import ReactFlow, { 
   Controls, Background, MiniMap, 
-  addEdge, useNodesState, useEdgesState 
+  useNodesState, useEdgesState 
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { FiPlus } from 'react-icons/fi';
@@ -69,6 +69,60 @@ const ProjectFlow = ({ project, onNodeClick, onNodeAdded, onAddBranch }) => {
     project.branches.length > 0 ? project.branches[0].id : null
   );
 
+  // 处理节点添加
+  const handleAddNode = React.useCallback(async (branchId, parentId, type) => {
+    try {
+      const nodeName = type === 'main' ? 'New Step' : 'New Task';
+      
+      // 计算新节点位置
+      const parentNode = nodes.find(n => n.id === parentId);
+      let position_x = 0;
+      let position_y = 0;
+      let level = 1;
+      let parent_id = null;
+      
+      if (parentNode) {
+        if (type === 'main') {
+          // 主节点在下方
+          position_x = parentNode.position.x;
+          position_y = parentNode.position.y + 150;
+          level = 1;
+        } else if (type === 'sub') {
+          // 子节点在右侧
+          position_x = parentNode.position.x + 150;
+          position_y = parentNode.position.y;
+          level = parentNode.data.status !== undefined ? 2 : 2; // 根据父节点类型判断
+          parent_id = parentId;
+        } else if (type === 'sub-next') {
+          // 同级子节点在下方
+          position_x = parentNode.position.x;
+          position_y = parentNode.position.y + 80;
+          level = 2;
+          parent_id = parentNode.data.parentId || parentId;
+        }
+      }
+      
+      const newNode = {
+        name: nodeName,
+        branch_id: branchId,
+        parent_id,
+        level,
+        status: 'in_progress',
+        position_x,
+        position_y
+      };
+      
+      await createNode(branchId, newNode);
+      
+      // 刷新节点
+      if (onNodeAdded) {
+        onNodeAdded();
+      }
+    } catch (error) {
+      console.error('Error adding node:', error);
+    }
+  }, [nodes, onNodeAdded]);
+
   // 将项目数据转换为React Flow节点和边
   React.useEffect(() => {
     if (!project || !project.branches || project.branches.length === 0) {
@@ -119,7 +173,6 @@ const ProjectFlow = ({ project, onNodeClick, onNodeAdded, onAddBranch }) => {
         let currentX = branchStartX + 200;
         const startY = branchStartY + branchIndex * branchSpacing;
         const xSpacing = 200;
-        const ySpacing = 100;
         
         // 添加主节点
         mainNodes.forEach((node, nodeIndex) => {
@@ -251,61 +304,7 @@ const ProjectFlow = ({ project, onNodeClick, onNodeAdded, onAddBranch }) => {
 
     setNodes(flowNodes);
     setEdges(flowEdges);
-  }, [project, selectedBranch]);
-
-  // 处理节点添加
-  const handleAddNode = async (branchId, parentId, type) => {
-    try {
-      const nodeName = type === 'main' ? 'New Step' : 'New Task';
-      
-      // 计算新节点位置
-      const parentNode = nodes.find(n => n.id === parentId);
-      let position_x = 0;
-      let position_y = 0;
-      let level = 1;
-      let parent_id = null;
-      
-      if (parentNode) {
-        if (type === 'main') {
-          // 主节点在下方
-          position_x = parentNode.position.x;
-          position_y = parentNode.position.y + 150;
-          level = 1;
-        } else if (type === 'sub') {
-          // 子节点在右侧
-          position_x = parentNode.position.x + 150;
-          position_y = parentNode.position.y;
-          level = parentNode.data.status !== undefined ? 2 : 2; // 根据父节点类型判断
-          parent_id = parentId;
-        } else if (type === 'sub-next') {
-          // 同级子节点在下方
-          position_x = parentNode.position.x;
-          position_y = parentNode.position.y + 80;
-          level = 2;
-          parent_id = parentNode.data.parentId || parentId;
-        }
-      }
-      
-      const newNode = {
-        name: nodeName,
-        branch_id: branchId,
-        parent_id,
-        level,
-        status: 'in_progress',
-        position_x,
-        position_y
-      };
-      
-      await createNode(branchId, newNode);
-      
-      // 刷新节点
-      if (onNodeAdded) {
-        onNodeAdded();
-      }
-    } catch (error) {
-      console.error('Error adding node:', error);
-    }
-  };
+  }, [project, selectedBranch, handleAddNode, setNodes, setEdges]);
 
   // 处理分支切换
   const handleBranchChange = (branchId) => {

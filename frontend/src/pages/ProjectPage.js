@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { FiMenu, FiChevronLeft, FiMoreVertical, FiPlus } from 'react-icons/fi';
+import { FiMenu, FiMoreVertical, FiPlus } from 'react-icons/fi';
 import { getProject, createBranch } from '../services/api';
 import Sidebar from '../components/Sidebar';
 import ProjectFlow from '../components/ProjectFlow';
