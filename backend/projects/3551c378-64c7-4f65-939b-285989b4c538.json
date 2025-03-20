@@ -1,0 +1,22 @@
+{
+  "id": "3551c378-64c7-4f65-939b-285989b4c538",
+  "name": "L2",
+  "path": "/app/projects",
+  "branches": [
+    {
+      "id": "4f61e72d-422b-4d8a-91dc-14d969a0d3fa",
+      "name": "Branch 1",
+      "nodes": [
+        {
+          "id": "3c8abccb-559f-4620-83ad-c4b43cb5943d",
+          "name": "Start",
+          "level": 1,
+          "status": "in_progress",
+          "parent_id": null,
+          "position_x": 0.0,
+          "position_y": 0.0
+        }
+      ]
+    }
+  ]
+}

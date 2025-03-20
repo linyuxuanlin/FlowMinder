@@ -34,46 +34,46 @@ code {
 
 /* 主节点样式 */
 .main-node {
-  background-color: #bbf7d0;
-  padding: 12px;
+  background-color: #d4a373;
+  padding: 16px;
   border-radius: 8px;
-  border: 2px solid #86efac;
-  font-weight: 600;
-  min-width: 180px;
+  border: 2px solid #8b5a2b;
+  font-weight: bold;
+  min-width: 200px;
   text-align: center;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  z-index: 100;
-  color: #166534;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  z-index: 10;
+  color: #333;
+  position: relative;
 }
 
 /* 二级节点样式 */
 .sub-node {
-  background-color: #ffedd5;
-  padding: 10px;
+  padding: 12px;
   border-radius: 6px;
-  border: 1px solid #fed7aa;
-  min-width: 150px;
+  min-width: 180px;
   text-align: center;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  z-index: 50;
-  color: #7c2d12;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  z-index: 5;
+  color: #333;
+  position: relative;
 }
 
 /* 节点状态样式 */
-.in-progress {
-  background-color: #fef9c3;
-  border: 2px solid #fde047;
+.status-in-progress {
+  background-color: #ffd166;
+  border: 1px solid #e9c46a;
 }
 
-.completed {
-  background-color: #dcfce7;
-  border: 2px solid #86efac;
+.status-completed {
+  background-color: #a7c957;
+  border: 1px solid #84a98c;
 }
 
-.abandoned {
-  background-color: #f1f5f9;
-  border: 2px dashed #cbd5e1;
-  color: #64748b;
+.status-abandoned {
+  background-color: #d1d1d1;
+  border: 1px solid #a9a9a9;
+  color: #666;
 }
 
 /* 流程操作按钮 */
@@ -103,33 +103,77 @@ code {
   transition: all 0.3s ease;
 }
 
-/* 加号按钮样式 */
+/* 添加按钮样式 */
 .add-button {
-  display: none;
   position: absolute;
   width: 24px;
   height: 24px;
-  background-color: #4a6741;
-  color: white;
   border-radius: 50%;
-  text-align: center;
-  line-height: 24px;
+  background-color: #4b6bfb;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
-  z-index: 10;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  border: none;
+  transition: all 0.2s ease;
+  opacity: 0;
 }
 
-.react-flow__node:hover .add-button {
-  display: block;
+.add-button:hover {
+  background-color: #3b5beb;
+  transform: scale(1.1);
 }
 
-.add-right {
-  right: -15px;
+.main-node:hover .add-button,
+.sub-node:hover .add-button {
+  opacity: 1;
+}
+
+.right-button {
   top: 50%;
+  right: -12px;
   transform: translateY(-50%);
 }
 
-.add-bottom {
-  bottom: -15px;
+.right-button:hover {
+  right: -14px;
+  transform: translateY(-50%) scale(1.1);
+}
+
+.bottom-button {
+  bottom: -12px;
   left: 50%;
   transform: translateX(-50%);
+}
+
+.bottom-button:hover {
+  bottom: -14px;
+  transform: translateX(-50%) scale(1.1);
+}
+
+/* 节点内容样式 */
+.node-content {
+  font-weight: bold;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 流程图容器样式 */
+.project-flow-container {
+  width: 100%;
+  height: 100%;
+  background-color: #f8f8f8;
+}
+
+/* React Flow 连线样式 */
+.react-flow__edge-path {
+  stroke-width: 2;
+}
+
+/* 箭头样式 */
+.react-flow__edge-path-marker {
+  fill: #555;
 } 

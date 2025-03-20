@@ -1,26 +1,87 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import ReactFlow, { 
   addEdge, 
-  MiniMap, 
   Controls, 
   Background, 
   useNodesState, 
-  useEdgesState 
+  useEdgesState,
+  MarkerType 
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { createNode, getNodes } from '../services/api';
+import { FiPlus } from 'react-icons/fi';
+import { createNode, getNodes, updateNode } from '../services/api';
+
+// 自定义主节点组件
+const MainNodeComponent = ({ data, isConnectable }) => {
+  return (
+    <div className="main-node">
+      <div className="node-content">{data.label}</div>
+      
+      {/* 右侧添加子节点按钮 */}
+      <button 
+        className="add-button right-button"
+        onClick={data.onAddSubNode}
+      >
+        <FiPlus />
+      </button>
+      
+      {/* 下方添加后续节点按钮 */}
+      <button 
+        className="add-button bottom-button"
+        onClick={data.onAddNextNode}
+      >
+        <FiPlus />
+      </button>
+    </div>
+  );
+};
+
+// 自定义子节点组件
+const SubNodeComponent = ({ data, isConnectable }) => {
+  return (
+    <div className={`sub-node status-${data.status || 'in-progress'}`}>
+      <div className="node-content">{data.label}</div>
+      
+      {/* 右侧添加子子节点按钮 */}
+      <button 
+        className="add-button right-button"
+        onClick={data.onAddSubNode}
+      >
+        <FiPlus />
+      </button>
+      
+      {/* 下方添加后续子节点按钮 */}
+      <button 
+        className="add-button bottom-button"
+        onClick={data.onAddNextNode}
+      >
+        <FiPlus />
+      </button>
+    </div>
+  );
+};
+
+const nodeTypes = {
+  mainNode: MainNodeComponent,
+  subNode: SubNodeComponent,
+};
 
 const ProjectFlow = ({ project, selectedBranch, onNodeSelect }) => {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-  const [selectedNode, setSelectedNode] = useState(null);
-  const reactFlowWrapper = useRef(null);
-  const [reactFlowInstance, setReactFlowInstance] = useState(null);
   const [loading, setLoading] = useState(false);
   const [dataLoaded, setDataLoaded] = useState(false);
   const nodesRef = useRef([]);
   const edgesRef = useRef([]);
   const lastBranchIdRef = useRef(null);
+  const reactFlowWrapper = useRef(null);
+  const [reactFlowInstance, setReactFlowInstance] = useState(null);
+  const nodePositionsRef = useRef(new Map());
+
+  // 记录节点初始位置
+  const storeNodePosition = (nodeId, position) => {
+    nodePositionsRef.current.set(nodeId, { ...position });
+  };
 
   // 处理React Flow初始化
   const onInit = useCallback((instance) => {
@@ -50,34 +111,145 @@ const ProjectFlow = ({ project, selectedBranch, onNodeSelect }) => {
       console.log('Received branch nodes:', branchNodes);
       
       if (branchNodes && branchNodes.length > 0) {
-        // 转换节点为React Flow格式
-        const flowNodes = branchNodes.map(node => ({
-          id: node.id,
-          type: 'default',
-          position: { x: node.position_x || 0, y: node.position_y || 0 },
-          data: { 
-            label: node.name, 
-            description: node.description,
-            level: node.level,
-            status: node.status,
-            taskId: node.task_id,
-            nodeType: node.level === 0 ? 'main' : 'sub',
-          },
-          className: `flow-node ${node.level === 0 ? 'main-node' : 'sub-node'} ${node.status || 'default'}`
-        }));
+        // 按层级和垂直位置排序节点
+        const sortedMainNodes = branchNodes
+          .filter(node => node.level === 0)
+          .sort((a, b) => a.position_y - b.position_y);
 
-        // 为相连节点创建边
+        const mainColumn = 250;
+        const subColumn = 500;
+        const verticalSpacing = 150;
+        
+        // 转换节点为React Flow格式
+        const flowNodes = [];
         const flowEdges = [];
-        branchNodes.forEach(node => {
-          if (node.parent_id) {
+        
+        // 处理主节点
+        sortedMainNodes.forEach((node, index) => {
+          // 使用保存的位置或计算新位置
+          const position = { 
+            x: node.position_x || mainColumn, 
+            y: node.position_y || index * verticalSpacing + 100 
+          };
+          
+          // 保存节点的初始位置
+          storeNodePosition(node.id, position);
+          
+          flowNodes.push({
+            id: node.id,
+            type: 'mainNode',
+            position,
+            data: { 
+              label: node.name,
+              description: node.description,
+              status: node.status,
+              onAddSubNode: () => handleAddNode(node.id, 'sub'),
+              onAddNextNode: () => handleAddNode(node.id, 'next'),
+            }
+          });
+          
+          // 如果不是第一个节点，添加与前一个主节点的连接
+          if (index > 0) {
             flowEdges.push({
-              id: `e-${node.parent_id}-${node.id}`,
-              source: node.parent_id,
+              id: `e-${sortedMainNodes[index-1].id}-${node.id}`,
+              source: sortedMainNodes[index-1].id,
               target: node.id,
-              animated: true,
-              style: { stroke: '#555' }
+              type: 'smoothstep',
+              markerEnd: { type: MarkerType.ArrowClosed },
+              style: { strokeWidth: 2 }
             });
           }
+          
+          // 查找并添加此主节点的子节点
+          const childNodes = branchNodes
+            .filter(childNode => childNode.parent_id === node.id)
+            .sort((a, b) => a.position_y - b.position_y);
+            
+          childNodes.forEach((childNode, childIndex) => {
+            const childPosition = { 
+              x: childNode.position_x || subColumn, 
+              y: childNode.position_y || position.y + childIndex * 100 
+            };
+            
+            // 保存子节点的初始位置
+            storeNodePosition(childNode.id, childPosition);
+            
+            flowNodes.push({
+              id: childNode.id,
+              type: 'subNode',
+              position: childPosition,
+              data: { 
+                label: childNode.name,
+                description: childNode.description,
+                status: childNode.status,
+                onAddSubNode: () => handleAddNode(childNode.id, 'sub'),
+                onAddNextNode: () => handleAddNode(childNode.id, 'next-sub'),
+              }
+            });
+            
+            // 添加从父节点到子节点的连接
+            flowEdges.push({
+              id: `e-${node.id}-${childNode.id}`,
+              source: node.id,
+              target: childNode.id,
+              type: 'smoothstep',
+              markerEnd: { type: MarkerType.ArrowClosed },
+              style: { strokeWidth: 2 }
+            });
+            
+            // 处理子节点的子节点 (第三级)
+            const grandChildNodes = branchNodes
+              .filter(grandChild => grandChild.parent_id === childNode.id)
+              .sort((a, b) => a.position_y - b.position_y);
+              
+            let prevGrandChildId = null;
+            
+            grandChildNodes.forEach((grandChild, gcIndex) => {
+              const grandChildPosition = { 
+                x: grandChild.position_x || subColumn + 250, 
+                y: grandChild.position_y || childPosition.y + gcIndex * 100 
+              };
+              
+              storeNodePosition(grandChild.id, grandChildPosition);
+              
+              flowNodes.push({
+                id: grandChild.id,
+                type: 'subNode',
+                position: grandChildPosition,
+                data: { 
+                  label: grandChild.name,
+                  description: grandChild.description,
+                  status: grandChild.status,
+                  onAddSubNode: () => handleAddNode(grandChild.id, 'sub'),
+                  onAddNextNode: () => handleAddNode(grandChild.id, 'next-sub'),
+                }
+              });
+              
+              // 添加从父子节点到孙子节点的连接
+              flowEdges.push({
+                id: `e-${childNode.id}-${grandChild.id}`,
+                source: childNode.id,
+                target: grandChild.id,
+                type: 'smoothstep',
+                markerEnd: { type: MarkerType.ArrowClosed },
+                style: { strokeWidth: 2 }
+              });
+              
+              // 如果不是第一个孙节点，添加与前一个的连接
+              if (prevGrandChildId) {
+                flowEdges.push({
+                  id: `e-${prevGrandChildId}-${grandChild.id}`,
+                  source: prevGrandChildId,
+                  target: grandChild.id,
+                  type: 'smoothstep',
+                  markerEnd: { type: MarkerType.ArrowClosed },
+                  style: { strokeWidth: 2 }
+                });
+              }
+              
+              prevGrandChildId = grandChild.id;
+            });
+          });
         });
 
         console.log('Setting flow nodes:', flowNodes.length);
@@ -115,7 +287,7 @@ const ProjectFlow = ({ project, selectedBranch, onNodeSelect }) => {
   // 当选中分支改变时加载新分支的节点
   useEffect(() => {
     if (selectedBranch) {
-      // 只有在分支改变时才清空节点，避免频繁的状态更新
+      // 只有在分支改变时才清空节点和边数据
       if (lastBranchIdRef.current !== selectedBranch.id) {
         setNodes([]);
         setEdges([]);
@@ -128,68 +300,58 @@ const ProjectFlow = ({ project, selectedBranch, onNodeSelect }) => {
 
   // 处理节点连接
   const onConnect = useCallback((params) => {
-    setEdges((eds) => addEdge({ ...params, animated: true }, eds));
+    setEdges((eds) => addEdge({ 
+      ...params, 
+      type: 'smoothstep',
+      markerEnd: { type: MarkerType.ArrowClosed },
+      style: { strokeWidth: 2 }
+    }, eds));
   }, [setEdges]);
 
-  // 处理节点选择
+  // 处理节点点击
   const onNodeClick = useCallback((event, node) => {
     console.log('Node clicked:', node);
-    setSelectedNode(node);
     if (onNodeSelect) {
-      onNodeSelect(node);
-    }
-  }, [onNodeSelect]);
-
-  // 计算新节点的位置
-  const calculateNodePosition = (isMainNode = false) => {
-    const defaultX = 250;
-    const defaultY = 100;
-    
-    // 如果没有现有节点，返回默认位置
-    if (nodesRef.current.length === 0) {
-      return { x: defaultX, y: defaultY };
-    }
-    
-    // 判断要创建的是主节点还是子节点
-    if (isMainNode) {
-      // 查找最右侧的主节点
-      const mainNodes = nodesRef.current.filter(node => node.data.level === 0);
-      if (mainNodes.length === 0) {
-        return { x: defaultX, y: defaultY };
-      }
-      
-      // 找到最右侧的主节点，新主节点放在其右侧
-      const rightmostNode = mainNodes.reduce((max, node) => 
-        node.position.x > max.position.x ? node : max, mainNodes[0]);
-      return { x: rightmostNode.position.x + 250, y: rightmostNode.position.y };
-    } else {
-      // 如果选中了节点，新子节点放在其下方
-      if (selectedNode) {
-        // 查找与选中节点关联的所有子节点
-        const childNodes = nodesRef.current.filter(node => 
-          edgesRef.current.some(edge => 
-            edge.source === selectedNode.id && edge.target === node.id
-          )
-        );
-        
-        if (childNodes.length === 0) {
-          // 如果没有子节点，放在正下方
-          return { x: selectedNode.position.x, y: selectedNode.position.y + 150 };
-        } else {
-          // 如果有子节点，找到最下方的子节点，新节点放在其下方
-          const bottomChild = childNodes.reduce((max, node) => 
-            node.position.y > max.position.y ? node : max, childNodes[0]);
-          return { x: selectedNode.position.x, y: bottomChild.position.y + 150 };
+      // 查找完整的节点数据
+      if (selectedBranch && selectedBranch.nodes) {
+        const nodeData = selectedBranch.nodes.find(n => n.id === node.id);
+        if (nodeData) {
+          onNodeSelect(nodeData);
         }
-      } else {
-        // 如果没有选中节点，默认位置
-        return { x: defaultX, y: defaultY };
       }
     }
-  };
+  }, [onNodeSelect, selectedBranch]);
+
+  // 处理节点拖动结束 - 保存新位置
+  const onNodeDragStop = useCallback((event, node) => {
+    const { id, position } = node;
+    
+    // 查找节点索引
+    const nodeIndex = nodesRef.current.findIndex(n => n.id === id);
+    if (nodeIndex >= 0) {
+      // 更新节点位置
+      const updatedNode = {
+        ...nodesRef.current[nodeIndex],
+        position
+      };
+      
+      // 更新节点列表
+      const updatedNodes = [...nodesRef.current];
+      updatedNodes[nodeIndex] = updatedNode;
+      nodesRef.current = updatedNodes;
+      
+      // 保存到后端
+      updateNode(id, { 
+        position_x: position.x,
+        position_y: position.y
+      }).catch(err => {
+        console.error('Error saving node position:', err);
+      });
+    }
+  }, []);
 
   // 创建新节点
-  const createNewNode = async (nodeType) => {
+  const handleAddNode = async (parentId, nodeType) => {
     if (!selectedBranch) {
       console.error('No branch selected');
       alert('请先选择一个分支');
@@ -197,25 +359,52 @@ const ProjectFlow = ({ project, selectedBranch, onNodeSelect }) => {
     }
 
     try {
-      let nodeName = nodeType === 'main' ? '主要里程碑' : '子任务';
-      let position = calculateNodePosition(nodeType === 'main');
+      // 确定节点名称
+      let nodeName;
+      let level;
+      let position_x;
+      let position_y;
       
-      // 如果分支中没有节点，创建一个"开始"节点
-      if (nodesRef.current.length === 0) {
-        nodeName = '开始';
+      // 查找父节点
+      const parentNode = nodesRef.current.find(node => node.id === parentId);
+      if (!parentNode) {
+        console.error('Parent node not found');
+        return;
       }
       
-      console.log(`Creating ${nodeType} node with name "${nodeName}" at position:`, position);
+      // 根据节点类型设置位置和级别
+      if (nodeType === 'next') {
+        // 添加下一个主节点
+        nodeName = '主步骤';
+        level = 0;
+        position_x = parentNode.position.x;
+        position_y = parentNode.position.y + 150;
+        parentId = null; // 主节点没有父节点
+      } else if (nodeType === 'sub') {
+        // 添加子节点
+        nodeName = '子任务';
+        level = 1;
+        position_x = parentNode.position.x + 250;
+        position_y = parentNode.position.y;
+      } else if (nodeType === 'next-sub') {
+        // 添加下一个子节点
+        nodeName = '子任务';
+        level = 1;
+        position_x = parentNode.position.x;
+        position_y = parentNode.position.y + 100;
+      }
+      
+      console.log(`Creating ${nodeType} node with name "${nodeName}" at position: (${position_x}, ${position_y})`);
       
       const newNodeData = {
         name: nodeName,
         description: '',
         branch_id: selectedBranch.id,
-        level: nodeType === 'main' ? 0 : 1,
-        position_x: position.x,
-        position_y: position.y,
-        status: 'in-progress',
-        parent_id: nodeType === 'main' ? null : (selectedNode ? selectedNode.id : null)
+        parent_id: nodeType === 'next' ? null : parentId,
+        level,
+        position_x,
+        position_y,
+        status: 'in-progress'
       };
       
       await createNode(selectedBranch.id, newNodeData);
@@ -234,20 +423,7 @@ const ProjectFlow = ({ project, selectedBranch, onNodeSelect }) => {
   };
 
   return (
-    <div className="project-flow-container" style={{ width: '100%', height: '100%' }}>
-      <div className="flow-actions" style={{ position: 'absolute', top: '10px', right: '10px', zIndex: 10 }}>
-        <button onClick={() => createNewNode('main')} className="flow-action-btn">
-          添加主节点
-        </button>
-        <button 
-          onClick={() => createNewNode('sub')} 
-          className="flow-action-btn"
-          disabled={!selectedNode}
-        >
-          添加子节点
-        </button>
-      </div>
-      
+    <div className="project-flow-container" style={{ width: '100%', height: '100%' }}>      
       <div className="react-flow-wrapper" ref={reactFlowWrapper} style={{ width: '100%', height: '100%' }}>
         {loading && !dataLoaded ? (
           <div className="flex items-center justify-center h-full">
@@ -261,7 +437,9 @@ const ProjectFlow = ({ project, selectedBranch, onNodeSelect }) => {
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
             onNodeClick={onNodeClick}
+            onNodeDragStop={onNodeDragStop}
             onInit={onInit}
+            nodeTypes={nodeTypes}
             fitView
             fitViewOptions={{ padding: 0.2 }}
             minZoom={0.5}
@@ -269,22 +447,9 @@ const ProjectFlow = ({ project, selectedBranch, onNodeSelect }) => {
             defaultViewport={{ x: 0, y: 0, zoom: 1 }}
             nodesDraggable={true}
             elementsSelectable={true}
-            snapToGrid={true}
-            snapGrid={[15, 15]}
-            style={{ background: '#f5f5f5' }}
+            style={{ background: '#f8f8f8' }}
           >
             <Controls />
-            <MiniMap
-              nodeStrokeColor={(n) => {
-                if (n.data?.nodeType === 'main') return '#0041d0';
-                if (n.data?.nodeType === 'sub') return '#ff0072';
-                return '#eee';
-              }}
-              nodeColor={(n) => {
-                if (n.data?.nodeType === 'main') return '#bbf7d0';
-                return '#ffcce3';
-              }}
-            />
             <Background color="#aaa" gap={16} />
           </ReactFlow>
         )}
