@@ -1,373 +1,279 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import ReactFlow, { 
-  Controls, Background, MiniMap, 
-  useNodesState, useEdgesState 
+  addEdge, 
+  MiniMap, 
+  Controls, 
+  Background, 
+  useNodesState, 
+  useEdgesState 
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { FiPlus } from 'react-icons/fi';
-import { createNode } from '../services/api';
+import { createNode, getNodes } from '../services/api';
 
-// 自定义节点
-const MainNode = ({ data }) => (
-  <div className="main-node">
-    {data.label}
-    {data.onAddSubNode && (
-      <div 
-        className="add-button add-right"
-        onClick={data.onAddSubNode}
-      >
-        <FiPlus />
-      </div>
-    )}
-    {data.onAddNextNode && (
-      <div 
-        className="add-button add-bottom"
-        onClick={data.onAddNextNode}
-      >
-        <FiPlus />
-      </div>
-    )}
-  </div>
-);
-
-const SubNode = ({ data }) => {
-  const statusClass = `status-${data.status || 'in-progress'}`;
-  
-  return (
-    <div className={`sub-node ${statusClass}`}>
-      {data.label}
-      {data.onAddSubNode && (
-        <div 
-          className="add-button add-right"
-          onClick={data.onAddSubNode}
-        >
-          <FiPlus />
-        </div>
-      )}
-      {data.onAddNextNode && (
-        <div 
-          className="add-button add-bottom"
-          onClick={data.onAddNextNode}
-        >
-          <FiPlus />
-        </div>
-      )}
-    </div>
-  );
-};
-
-// 节点类型映射
-const nodeTypes = {
-  mainNode: MainNode,
-  subNode: SubNode,
-};
-
-const ProjectFlow = ({ project, onNodeClick, onNodeAdded, onAddBranch }) => {
+const ProjectFlow = ({ project, selectedBranch, onNodeSelect }) => {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-  const [selectedBranch, setSelectedBranch] = useState(
-    project.branches.length > 0 ? project.branches[0].id : null
-  );
+  const [selectedNode, setSelectedNode] = useState(null);
+  const reactFlowWrapper = useRef(null);
+  const [reactFlowInstance, setReactFlowInstance] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const nodesRef = useRef([]);
+  const edgesRef = useRef([]);
 
-  // 处理节点添加
-  const handleAddNode = React.useCallback(async (branchId, parentId, type) => {
-    try {
-      const nodeName = type === 'main' ? 'New Step' : 'New Task';
-      
-      // 计算新节点位置
-      const parentNode = nodes.find(n => n.id === parentId);
-      let position_x = 0;
-      let position_y = 0;
-      let level = 1;
-      let parent_id = null;
-      
-      if (parentNode) {
-        if (type === 'main') {
-          // 主节点在下方
-          position_x = parentNode.position.x;
-          position_y = parentNode.position.y + 150;
-          level = 1;
-        } else if (type === 'sub') {
-          // 子节点在右侧
-          position_x = parentNode.position.x + 150;
-          position_y = parentNode.position.y;
-          level = parentNode.data.status !== undefined ? 2 : 2; // 根据父节点类型判断
-          parent_id = parentId;
-        } else if (type === 'sub-next') {
-          // 同级子节点在下方
-          position_x = parentNode.position.x;
-          position_y = parentNode.position.y + 80;
-          level = 2;
-          parent_id = parentNode.data.parentId || parentId;
-        }
-      }
-      
-      const newNode = {
-        name: nodeName,
-        branch_id: branchId,
-        parent_id,
-        level,
-        status: 'in_progress',
-        position_x,
-        position_y
-      };
-      
-      await createNode(branchId, newNode);
-      
-      // 刷新节点
-      if (onNodeAdded) {
-        onNodeAdded();
-      }
-    } catch (error) {
-      console.error('Error adding node:', error);
-    }
-  }, [nodes, onNodeAdded]);
+  // 处理React Flow初始化
+  const onInit = useCallback((instance) => {
+    console.log('React Flow initialized:', instance);
+    setReactFlowInstance(instance);
+  }, []);
 
-  // 将项目数据转换为React Flow节点和边
-  React.useEffect(() => {
-    if (!project || !project.branches || project.branches.length === 0) {
-      setNodes([]);
-      setEdges([]);
-      return;
-    }
-
-    // 找到当前选中的分支
-    const activeBranch = project.branches.find(branch => branch.id === selectedBranch) || project.branches[0];
-    if (!activeBranch) {
-      setNodes([]);
-      setEdges([]);
-      return;
-    }
-
-    const flowNodes = [];
-    const flowEdges = [];
-    const nodeMap = new Map();
+  // 加载分支节点
+  const loadBranchNodes = useCallback(async () => {
+    if (!selectedBranch) return;
     
-    // 添加每个分支作为一个水平行
-    let branchStartX = 50;
-    const branchStartY = 50;
-    const branchSpacing = 200;
-
-    project.branches.forEach((branch, branchIndex) => {
-      // 分支标题节点
-      const branchTitleNodeId = `branch-${branch.id}`;
-      flowNodes.push({
-        id: branchTitleNodeId,
-        type: 'mainNode',
-        position: { x: branchStartX, y: branchStartY + branchIndex * branchSpacing },
-        data: { 
-          label: branch.name,
-          isTitle: true,
-          status: 'in_progress'
-        },
-      });
+    try {
+      setLoading(true);
+      console.log(`Loading nodes for branch: ${selectedBranch.id}`);
       
-      // 如果是当前选中的分支，添加其所有节点
-      if (branch.id === activeBranch.id) {
-        // 排序节点：先主节点，按垂直位置排序
-        const mainNodes = branch.nodes
-          .filter(node => node.level === 1)
-          .sort((a, b) => a.position_y - b.position_y);
-        
-        // 初始布局位置
-        let currentX = branchStartX + 200;
-        const startY = branchStartY + branchIndex * branchSpacing;
-        const xSpacing = 200;
-        
-        // 添加主节点
-        mainNodes.forEach((node, nodeIndex) => {
-          const nodeId = node.id;
-          const position = { 
-            x: node.position_x || currentX, 
-            y: node.position_y || startY
-          };
-          
-          flowNodes.push({
-            id: nodeId,
-            type: 'mainNode',
-            position,
-            data: { 
-              label: node.name,
-              status: node.status,
-              onAddSubNode: () => handleAddNode(branch.id, nodeId, 'sub'),
-              onAddNextNode: () => handleAddNode(branch.id, nodeId, 'main')
-            },
-          });
-          
-          nodeMap.set(nodeId, position);
-          
-          // 添加与前一个节点的连接
-          if (nodeIndex > 0) {
+      const branchNodes = await getNodes(selectedBranch.id);
+      console.log('Received branch nodes:', branchNodes);
+      
+      if (branchNodes && branchNodes.length > 0) {
+        // 转换节点为React Flow格式
+        const flowNodes = branchNodes.map(node => ({
+          id: node.id,
+          type: 'default',
+          position: { x: node.position_x || 0, y: node.position_y || 0 },
+          data: { 
+            label: node.name, 
+            description: node.description,
+            level: node.level,
+            status: node.status,
+            taskId: node.task_id,
+            nodeType: node.level === 0 ? 'main' : 'sub',
+          },
+          className: `flow-node ${node.level === 0 ? 'main-node' : 'sub-node'} ${node.status || 'default'}`
+        }));
+
+        // 为相连节点创建边
+        const flowEdges = [];
+        branchNodes.forEach(node => {
+          if (node.parent_id) {
             flowEdges.push({
-              id: `e-${mainNodes[nodeIndex - 1].id}-${nodeId}`,
-              source: mainNodes[nodeIndex - 1].id,
-              target: nodeId,
-              type: 'smoothstep',
+              id: `e-${node.parent_id}-${node.id}`,
+              source: node.parent_id,
+              target: node.id,
+              animated: true,
+              style: { stroke: '#555' }
             });
           }
-          
-          currentX += xSpacing;
-          
-          // 添加子节点
-          const childNodes = branch.nodes
-            .filter(n => n.parent_id === nodeId)
-            .sort((a, b) => a.position_x - b.position_x);
-          
-          let subX = position.x + 150;
-          let subY = position.y;
-          
-          childNodes.forEach((childNode, childIndex) => {
-            const childId = childNode.id;
-            const childPosition = { 
-              x: childNode.position_x || subX, 
-              y: childNode.position_y || subY
-            };
-            
-            flowNodes.push({
-              id: childId,
-              type: 'subNode',
-              position: childPosition,
-              data: { 
-                label: childNode.name,
-                status: childNode.status,
-                onAddSubNode: () => handleAddNode(branch.id, childId, 'sub'),
-                onAddNextNode: () => handleAddNode(branch.id, childId, 'sub-next')
-              },
-            });
-            
-            nodeMap.set(childId, childPosition);
-            
-            // 添加与父节点或前一个子节点的连接
-            if (childIndex === 0) {
-              // 第一个子节点连接到父节点
-              flowEdges.push({
-                id: `e-${nodeId}-${childId}`,
-                source: nodeId,
-                target: childId,
-                type: 'smoothstep',
-              });
-            } else {
-              // 其他子节点连接到前一个子节点
-              flowEdges.push({
-                id: `e-${childNodes[childIndex - 1].id}-${childId}`,
-                source: childNodes[childIndex - 1].id,
-                target: childId,
-                type: 'smoothstep',
-              });
-            }
-            
-            subX += 150;
-            
-            // 处理更深层次的子节点（递归）
-            const subChildNodes = branch.nodes
-              .filter(n => n.parent_id === childId)
-              .sort((a, b) => a.position_y - b.position_y);
-            
-            let deepSubX = childPosition.x;
-            let deepSubY = childPosition.y + 80;
-            
-            subChildNodes.forEach((subChild, subChildIndex) => {
-              const subChildId = subChild.id;
-              const subChildPosition = { 
-                x: subChild.position_x || deepSubX, 
-                y: subChild.position_y || deepSubY
-              };
-              
-              flowNodes.push({
-                id: subChildId,
-                type: 'subNode',
-                position: subChildPosition,
-                data: { 
-                  label: subChild.name,
-                  status: subChild.status,
-                  onAddSubNode: () => handleAddNode(branch.id, subChildId, 'sub'),
-                  onAddNextNode: () => handleAddNode(branch.id, subChildId, 'sub-next')
-                },
-              });
-              
-              nodeMap.set(subChildId, subChildPosition);
-              
-              // 连接到父节点
-              flowEdges.push({
-                id: `e-${childId}-${subChildId}`,
-                source: childId,
-                target: subChildId,
-                type: 'smoothstep',
-              });
-              
-              deepSubY += 80;
-            });
-          });
         });
+
+        console.log('Setting flow nodes:', flowNodes);
+        console.log('Setting flow edges:', flowEdges);
+        
+        // 使用setTimeout避免ResizeObserver错误
+        setTimeout(() => {
+          setNodes(flowNodes);
+          setEdges(flowEdges);
+          nodesRef.current = flowNodes;
+          edgesRef.current = flowEdges;
+          setLoading(false);
+          
+          // 如果有节点，确保画布适配所有节点
+          if (flowNodes.length > 0 && reactFlowInstance) {
+            setTimeout(() => {
+              reactFlowInstance.fitView({ padding: 0.2 });
+            }, 50);
+          }
+        }, 50);
+      } else {
+        console.log('No nodes found for this branch');
+        // 清空节点和边，避免显示之前分支的节点
+        setTimeout(() => {
+          setNodes([]);
+          setEdges([]);
+          nodesRef.current = [];
+          edgesRef.current = [];
+          setLoading(false);
+        }, 50);
       }
-    });
+    } catch (error) {
+      console.error('Error loading branch nodes:', error);
+      setLoading(false);
+    }
+  }, [selectedBranch, setNodes, setEdges, reactFlowInstance]);
 
-    setNodes(flowNodes);
-    setEdges(flowEdges);
-  }, [project, selectedBranch, handleAddNode, setNodes, setEdges]);
+  // 当选中分支改变时加载新分支的节点
+  useEffect(() => {
+    // 清空当前节点和边，避免闪烁
+    setTimeout(() => {
+      setNodes([]);
+      setEdges([]);
+    }, 10);
+    
+    if (selectedBranch) {
+      loadBranchNodes();
+    }
+  }, [selectedBranch, loadBranchNodes, setNodes, setEdges]);
 
-  // 处理分支切换
-  const handleBranchChange = (branchId) => {
-    setSelectedBranch(branchId);
+  // 处理节点连接
+  const onConnect = useCallback((params) => {
+    setEdges((eds) => addEdge({ ...params, animated: true }, eds));
+  }, [setEdges]);
+
+  // 处理节点选择
+  const onNodeClick = useCallback((event, node) => {
+    console.log('Node clicked:', node);
+    setSelectedNode(node);
+    if (onNodeSelect) {
+      onNodeSelect(node);
+    }
+  }, [onNodeSelect]);
+
+  // 计算新节点的位置
+  const calculateNodePosition = (isMainNode = false) => {
+    const defaultX = 250;
+    const defaultY = 100;
+    
+    // 如果没有现有节点，返回默认位置
+    if (nodesRef.current.length === 0) {
+      return { x: defaultX, y: defaultY };
+    }
+    
+    // 判断要创建的是主节点还是子节点
+    if (isMainNode) {
+      // 查找最右侧的主节点
+      const mainNodes = nodesRef.current.filter(node => node.data.level === 0);
+      if (mainNodes.length === 0) {
+        return { x: defaultX, y: defaultY };
+      }
+      
+      // 找到最右侧的主节点，新主节点放在其右侧
+      const rightmostNode = mainNodes.reduce((max, node) => 
+        node.position.x > max.position.x ? node : max, mainNodes[0]);
+      return { x: rightmostNode.position.x + 250, y: rightmostNode.position.y };
+    } else {
+      // 如果选中了节点，新子节点放在其下方
+      if (selectedNode) {
+        // 查找与选中节点关联的所有子节点
+        const childNodes = nodesRef.current.filter(node => 
+          edgesRef.current.some(edge => 
+            edge.source === selectedNode.id && edge.target === node.id
+          )
+        );
+        
+        if (childNodes.length === 0) {
+          // 如果没有子节点，放在正下方
+          return { x: selectedNode.position.x, y: selectedNode.position.y + 150 };
+        } else {
+          // 如果有子节点，找到最下方的子节点，新节点放在其下方
+          const bottomChild = childNodes.reduce((max, node) => 
+            node.position.y > max.position.y ? node : max, childNodes[0]);
+          return { x: selectedNode.position.x, y: bottomChild.position.y + 150 };
+        }
+      } else {
+        // 如果没有选中节点，默认位置
+        return { x: defaultX, y: defaultY };
+      }
+    }
   };
 
-  // 处理节点点击
-  const onNodeClickHandler = (_, node) => {
-    // 对于标题节点不执行操作
-    if (node.data.isTitle) return;
-    
-    // 查找完整的节点数据
-    const selectedBranchData = project.branches.find(b => b.id === selectedBranch);
-    if (!selectedBranchData) return;
-    
-    const nodeData = selectedBranchData.nodes.find(n => n.id === node.id);
-    if (nodeData && onNodeClick) {
-      onNodeClick(nodeData);
+  // 创建新节点
+  const createNewNode = async (nodeType) => {
+    if (!selectedBranch) {
+      console.error('No branch selected');
+      alert('请先选择一个分支');
+      return;
+    }
+
+    try {
+      let nodeName = nodeType === 'main' ? '主要里程碑' : '子任务';
+      let position = calculateNodePosition(nodeType === 'main');
+      
+      // 如果分支中没有节点，创建一个"开始"节点
+      if (nodesRef.current.length === 0) {
+        nodeName = '开始';
+      }
+      
+      console.log(`Creating ${nodeType} node with name "${nodeName}" at position:`, position);
+      
+      const newNodeData = {
+        name: nodeName,
+        description: '',
+        branch_id: selectedBranch.id,
+        level: nodeType === 'main' ? 0 : 1,
+        position_x: position.x,
+        position_y: position.y,
+        status: 'in-progress',
+        parent_id: nodeType === 'main' ? null : (selectedNode ? selectedNode.id : null)
+      };
+      
+      const createdNode = await createNode(newNodeData);
+      console.log('Node created:', createdNode);
+      
+      // 重新加载节点以确保UI更新
+      await loadBranchNodes();
+      
+    } catch (error) {
+      console.error('Error creating node:', error);
+      alert(`创建节点失败: ${error.message}`);
     }
   };
 
   return (
-    <div className="h-full flex flex-col">
-      {/* 分支选择器 */}
-      <div className="px-4 py-2 border-b border-gray-200 flex items-center justify-between">
-        <div className="flex space-x-2">
-          {project.branches.map(branch => (
-            <button
-              key={branch.id}
-              onClick={() => handleBranchChange(branch.id)}
-              className={`px-4 py-1 rounded-md ${
-                selectedBranch === branch.id 
-                  ? 'bg-primary text-white' 
-                  : 'bg-gray-100 hover:bg-gray-200'
-              }`}
-            >
-              {branch.name}
-            </button>
-          ))}
-        </div>
-        <button
-          onClick={onAddBranch}
-          className="flex items-center gap-1 text-sm text-primary hover:text-opacity-80"
+    <div className="project-flow-container" style={{ width: '100%', height: '100%' }}>
+      <div className="flow-actions" style={{ position: 'absolute', top: '10px', right: '10px', zIndex: 10 }}>
+        <button onClick={() => createNewNode('main')} className="flow-action-btn">
+          添加主节点
+        </button>
+        <button 
+          onClick={() => createNewNode('sub')} 
+          className="flow-action-btn"
+          disabled={!selectedNode}
         >
-          <FiPlus /> 添加分支
+          添加子节点
         </button>
       </div>
       
-      {/* 流程图 */}
-      <div className="flex-1">
-        <ReactFlow
-          nodes={nodes}
-          edges={edges}
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
-          onNodeClick={onNodeClickHandler}
-          nodeTypes={nodeTypes}
-          fitView
-        >
-          <Background />
-          <Controls />
-          <MiniMap />
-        </ReactFlow>
+      <div className="react-flow-wrapper" ref={reactFlowWrapper} style={{ width: '100%', height: '100%' }}>
+        {loading ? (
+          <div className="flex items-center justify-center h-full">
+            <p className="text-gray-500">加载节点中...</p>
+          </div>
+        ) : (
+          <ReactFlow
+            nodes={nodes}
+            edges={edges}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            onConnect={onConnect}
+            onNodeClick={onNodeClick}
+            onInit={onInit}
+            fitView
+            fitViewOptions={{ padding: 0.2 }}
+            minZoom={0.5}
+            maxZoom={2}
+            defaultViewport={{ x: 0, y: 0, zoom: 1 }}
+            nodesDraggable={true}
+            elementsSelectable={true}
+            snapToGrid={true}
+            snapGrid={[15, 15]}
+          >
+            <Controls />
+            <MiniMap
+              nodeStrokeColor={(n) => {
+                if (n.data?.nodeType === 'main') return '#0041d0';
+                if (n.data?.nodeType === 'sub') return '#ff0072';
+                return '#eee';
+              }}
+              nodeColor={(n) => {
+                if (n.data?.nodeType === 'main') return '#bbf7d0';
+                return '#ffcce3';
+              }}
+            />
+            <Background color="#aaa" gap={16} />
+          </ReactFlow>
+        )}
       </div>
     </div>
   );

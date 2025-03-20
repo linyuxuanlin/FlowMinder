@@ -22,39 +22,80 @@ code {
   height: calc(100vh - 64px);
 }
 
+/* 流程图节点样式 */
+.flow-node {
+  border-radius: 5px;
+  padding: 10px;
+  font-size: 14px;
+  width: 150px;
+  text-align: center;
+  border: 1px solid #ddd;
+}
+
 /* 主节点样式 */
 .main-node {
-  background-color: #d4a373;
-  padding: 10px;
-  border-radius: 5px;
-  border: 2px solid #8b5a2b;
-  font-weight: bold;
-  min-width: 150px;
+  background-color: #bbf7d0;
+  padding: 12px;
+  border-radius: 8px;
+  border: 2px solid #86efac;
+  font-weight: 600;
+  min-width: 180px;
   text-align: center;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  z-index: 100;
+  color: #166534;
 }
 
 /* 二级节点样式 */
 .sub-node {
+  background-color: #ffedd5;
   padding: 10px;
-  border-radius: 5px;
+  border-radius: 6px;
+  border: 1px solid #fed7aa;
   min-width: 150px;
   text-align: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  z-index: 50;
+  color: #7c2d12;
 }
 
-.status-in-progress {
-  background-color: #ffd166;
-  border: 1px solid #e9c46a;
+/* 节点状态样式 */
+.in-progress {
+  background-color: #fef9c3;
+  border: 2px solid #fde047;
 }
 
-.status-completed {
-  background-color: #a7c957;
-  border: 1px solid #84a98c;
+.completed {
+  background-color: #dcfce7;
+  border: 2px solid #86efac;
 }
 
-.status-abandoned {
-  background-color: #d1d1d1;
-  border: 1px solid #a9a9a9;
-  color: #666;
+.abandoned {
+  background-color: #f1f5f9;
+  border: 2px dashed #cbd5e1;
+  color: #64748b;
+}
+
+/* 流程操作按钮 */
+.flow-action-btn {
+  background-color: #3b82f6;
+  color: white;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 14px;
+  margin-left: 8px;
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.flow-action-btn:hover {
+  background-color: #2563eb;
+}
+
+.flow-action-btn:disabled {
+  background-color: #9ca3af;
+  cursor: not-allowed;
 }
 
 /* 侧边栏动画 */

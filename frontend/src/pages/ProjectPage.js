@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { FiMenu, FiChevronLeft, FiMoreVertical, FiPlus } from 'react-icons/fi';
-import { getProject, createBranch } from '../services/api';
+import { FiMenu, FiMoreVertical, FiPlus } from 'react-icons/fi';
+import { getProject, createBranch, deleteProject } from '../services/api';
 import Sidebar from '../components/Sidebar';
 import ProjectFlow from '../components/ProjectFlow';
 import NodeProperties from '../components/NodeProperties';
@@ -18,18 +18,41 @@ const ProjectPage = () => {
   const [showBranchForm, setShowBranchForm] = useState(false);
   const [showProjectForm, setShowProjectForm] = useState(false);
   const [activeMenu, setActiveMenu] = useState(false);
+  const [selectedBranch, setSelectedBranch] = useState(null);
 
   const fetchProject = useCallback(async () => {
     try {
       setLoading(true);
       const response = await getProject(projectId);
+      console.log("Fetched project data:", response.data);
       setProject(response.data);
+
+      // 如果有新创建的分支，刷新一次以确保获取到节点数据
+      if (response.data && response.data.branches && response.data.branches.some(b => b.nodes.length === 0)) {
+        console.log("Found branches with no nodes, scheduling refresh");
+        setTimeout(() => {
+          console.log("Refreshing project data to get updated nodes");
+          getProject(projectId).then(newResponse => {
+            console.log("Refreshed project data:", newResponse.data);
+            setProject(newResponse.data);
+          }).catch(err => {
+            console.error("Error in refresh:", err);
+          });
+        }, 1000);
+      }
+      
+      // 设置默认选中的分支
+      if (response.data && response.data.branches && response.data.branches.length > 0) {
+        if (!selectedBranch) {
+          setSelectedBranch(response.data.branches[0]);
+        }
+      }
     } catch (error) {
       console.error('Error fetching project:', error);
     } finally {
       setLoading(false);
     }
-  }, [projectId]);
+  }, [projectId, selectedBranch]);
 
   useEffect(() => {
     fetchProject();
@@ -50,7 +73,17 @@ const ProjectPage = () => {
       console.log("Creating branch with name:", branchName);
       await createBranch(projectId, { name: branchName });
       setShowBranchForm(false);
-      fetchProject();
+      await fetchProject();
+      
+      // 创建分支后，获取刷新后的项目数据并设置最新的分支为选中状态
+      const refreshedProject = await getProject(projectId);
+      if (refreshedProject.data && refreshedProject.data.branches.length > 0) {
+        // 查找新创建的分支
+        const newBranch = refreshedProject.data.branches.find(b => b.name === branchName);
+        if (newBranch) {
+          setSelectedBranch(newBranch);
+        }
+      }
     } catch (error) {
       console.error('Error creating branch:', error);
       // 显示更详细的错误信息
@@ -64,6 +97,10 @@ const ProjectPage = () => {
   const handleUpdateProject = () => {
     setShowProjectForm(false);
     fetchProject();
+  };
+  
+  const handleBranchChange = (branch) => {
+    setSelectedBranch(branch);
   };
 
   if (loading) {
@@ -124,7 +161,12 @@ const ProjectPage = () => {
               <button 
                 onClick={() => {
                   if (window.confirm('确定要删除这个项目吗？')) {
-                    navigate('/');
+                    deleteProject(projectId).then(() => {
+                      navigate('/');
+                    }).catch(err => {
+                      console.error('Error deleting project:', err);
+                      alert('删除项目失败');
+                    });
                   }
                 }}
                 className="block w-full text-left px-4 py-2 text-red-600 hover:bg-gray-100"
@@ -151,12 +193,38 @@ const ProjectPage = () => {
           {/* 流程图区域 */}
           <div className="flex-1 overflow-hidden">
             {project.branches.length > 0 ? (
-              <ProjectFlow 
-                project={project} 
-                onNodeClick={handleNodeClick}
-                onNodeAdded={fetchProject}
-                onAddBranch={() => setShowBranchForm(true)}
-              />
+              <>
+                {/* 分支选择器 */}
+                <div className="px-4 py-2 border-b border-gray-200 flex items-center justify-between">
+                  <div className="flex space-x-2 overflow-x-auto">
+                    {project.branches.map(branch => (
+                      <button
+                        key={branch.id}
+                        onClick={() => handleBranchChange(branch)}
+                        className={`px-4 py-1 rounded-md ${
+                          selectedBranch && selectedBranch.id === branch.id 
+                            ? 'bg-primary text-white' 
+                            : 'bg-gray-100 hover:bg-gray-200'
+                        }`}
+                      >
+                        {branch.name}
+                      </button>
+                    ))}
+                  </div>
+                  <button
+                    onClick={() => setShowBranchForm(true)}
+                    className="flex items-center gap-1 text-sm text-primary hover:text-opacity-80"
+                  >
+                    <FiPlus /> 添加分支
+                  </button>
+                </div>
+                
+                <ProjectFlow 
+                  project={project} 
+                  selectedBranch={selectedBranch}
+                  onNodeSelect={handleNodeClick}
+                />
+              </>
             ) : (
               <div className="h-full flex flex-col items-center justify-center">
                 <p className="mb-4 text-gray-600">该项目还没有分支</p>

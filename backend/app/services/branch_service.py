@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from app.models.models import Branch, Project
+from app.models.models import Branch, Project, Node
 from app.schemas.schemas import BranchCreate, BranchUpdate
 import uuid
 from app.services.project_service import create_local_project_file
@@ -11,6 +11,9 @@ def get_branch(db: Session, branch_id: str):
     return db.query(Branch).filter(Branch.id == branch_id).first()
 
 def create_branch(db: Session, branch: BranchCreate):
+    # 打印接收到的数据，帮助调试
+    print(f"Creating branch in service: {branch}")
+    
     db_branch = Branch(
         id=str(uuid.uuid4()),
         name=branch.name,
@@ -19,6 +22,18 @@ def create_branch(db: Session, branch: BranchCreate):
     db.add(db_branch)
     db.commit()
     db.refresh(db_branch)
+    
+    # 自动创建起始节点
+    start_node = Node(
+        id=str(uuid.uuid4()),
+        name="Start",
+        branch_id=db_branch.id,
+        level=1,
+        position_x=200,
+        position_y=100
+    )
+    db.add(start_node)
+    db.commit()
     
     # 更新本地项目文件
     project = db.query(Project).filter(Project.id == branch.project_id).first()
