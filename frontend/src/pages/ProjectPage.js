@@ -19,32 +19,42 @@ const ProjectPage = () => {
   const [showProjectForm, setShowProjectForm] = useState(false);
   const [activeMenu, setActiveMenu] = useState(false);
   const [selectedBranch, setSelectedBranch] = useState(null);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [lastFetchTime, setLastFetchTime] = useState(0);
 
-  const fetchProject = useCallback(async () => {
+  // 获取项目数据，移除selectedBranch依赖，避免循环请求
+  const fetchProject = useCallback(async (skipSettingBranch = false) => {
+    // 防止短时间内重复请求
+    const now = Date.now();
+    if (now - lastFetchTime < 500) {
+      console.log("请求过于频繁，跳过");
+      return;
+    }
+    
     try {
       setLoading(true);
+      setLastFetchTime(now);
+      
       const response = await getProject(projectId);
       console.log("Fetched project data:", response.data);
+      
+      // 保存当前选择的分支ID
+      const currentBranchId = selectedBranch?.id;
+      
       setProject(response.data);
 
-      // 如果有新创建的分支，刷新一次以确保获取到节点数据
-      if (response.data && response.data.branches && response.data.branches.some(b => b.nodes.length === 0)) {
-        console.log("Found branches with no nodes, scheduling refresh");
-        setTimeout(() => {
-          console.log("Refreshing project data to get updated nodes");
-          getProject(projectId).then(newResponse => {
-            console.log("Refreshed project data:", newResponse.data);
-            setProject(newResponse.data);
-          }).catch(err => {
-            console.error("Error in refresh:", err);
-          });
-        }, 1000);
-      }
-      
       // 设置默认选中的分支
-      if (response.data && response.data.branches && response.data.branches.length > 0) {
-        if (!selectedBranch) {
+      if (!skipSettingBranch && response.data && response.data.branches && response.data.branches.length > 0) {
+        if (isInitialLoad) {
+          // 首次加载时自动选择第一个分支
           setSelectedBranch(response.data.branches[0]);
+          setIsInitialLoad(false);
+        } else if (currentBranchId) {
+          // 更新后保持当前选择的分支
+          const branch = response.data.branches.find(b => b.id === currentBranchId);
+          if (branch) {
+            setSelectedBranch(branch);
+          }
         }
       }
     } catch (error) {
@@ -52,8 +62,9 @@ const ProjectPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [projectId, selectedBranch]);
+  }, [projectId, isInitialLoad, lastFetchTime]); // 移除selectedBranch依赖
 
+  // 首次加载项目数据
   useEffect(() => {
     fetchProject();
   }, [fetchProject]);
@@ -63,30 +74,29 @@ const ProjectPage = () => {
   };
 
   const handleNodeUpdate = () => {
-    // 节点更新后重新获取项目数据
-    fetchProject();
+    // 节点更新后刷新项目数据，但不重置分支选择
+    fetchProject(true);
     setSelectedNode(null);
   };
 
   const handleAddBranch = async (branchName) => {
     try {
       console.log("Creating branch with name:", branchName);
-      await createBranch(projectId, { name: branchName });
+      const response = await createBranch(projectId, { name: branchName });
+      console.log("Branch created:", response.data);
       setShowBranchForm(false);
-      await fetchProject();
       
-      // 创建分支后，获取刷新后的项目数据并设置最新的分支为选中状态
+      // 重新获取项目数据
       const refreshedProject = await getProject(projectId);
-      if (refreshedProject.data && refreshedProject.data.branches.length > 0) {
-        // 查找新创建的分支
-        const newBranch = refreshedProject.data.branches.find(b => b.name === branchName);
-        if (newBranch) {
-          setSelectedBranch(newBranch);
-        }
+      setProject(refreshedProject.data);
+      
+      // 查找新创建的分支并选中
+      const newBranch = refreshedProject.data.branches.find(b => b.name === branchName);
+      if (newBranch) {
+        setSelectedBranch(newBranch);
       }
     } catch (error) {
       console.error('Error creating branch:', error);
-      // 显示更详细的错误信息
       if (error.response) {
         console.error('Response data:', error.response.data);
         console.error('Response status:', error.response.status);
@@ -96,14 +106,16 @@ const ProjectPage = () => {
 
   const handleUpdateProject = () => {
     setShowProjectForm(false);
-    fetchProject();
+    fetchProject(true);
   };
   
   const handleBranchChange = (branch) => {
-    setSelectedBranch(branch);
+    if (selectedBranch?.id !== branch.id) {
+      setSelectedBranch(branch);
+    }
   };
 
-  if (loading) {
+  if (loading && !project) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <p>加载中...</p>
@@ -219,11 +231,14 @@ const ProjectPage = () => {
                   </button>
                 </div>
                 
-                <ProjectFlow 
-                  project={project} 
-                  selectedBranch={selectedBranch}
-                  onNodeSelect={handleNodeClick}
-                />
+                {selectedBranch && (
+                  <ProjectFlow 
+                    key={selectedBranch.id} // 添加key以确保分支切换时组件重新挂载
+                    project={project} 
+                    selectedBranch={selectedBranch}
+                    onNodeSelect={handleNodeClick}
+                  />
+                )}
               </>
             ) : (
               <div className="h-full flex flex-col items-center justify-center">

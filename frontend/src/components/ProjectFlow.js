@@ -17,8 +17,10 @@ const ProjectFlow = ({ project, selectedBranch, onNodeSelect }) => {
   const reactFlowWrapper = useRef(null);
   const [reactFlowInstance, setReactFlowInstance] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [dataLoaded, setDataLoaded] = useState(false);
   const nodesRef = useRef([]);
   const edgesRef = useRef([]);
+  const lastBranchIdRef = useRef(null);
 
   // 处理React Flow初始化
   const onInit = useCallback((instance) => {
@@ -30,8 +32,18 @@ const ProjectFlow = ({ project, selectedBranch, onNodeSelect }) => {
   const loadBranchNodes = useCallback(async () => {
     if (!selectedBranch) return;
     
+    // 防止重复加载相同分支
+    if (lastBranchIdRef.current === selectedBranch.id && dataLoaded) {
+      console.log(`Skipping load for branch ${selectedBranch.id} - already loaded`);
+      return;
+    }
+    
+    // 记录当前加载的分支ID
+    lastBranchIdRef.current = selectedBranch.id;
+    
     try {
       setLoading(true);
+      setDataLoaded(false);
       console.log(`Loading nodes for branch: ${selectedBranch.id}`);
       
       const branchNodes = await getNodes(selectedBranch.id);
@@ -68,50 +80,48 @@ const ProjectFlow = ({ project, selectedBranch, onNodeSelect }) => {
           }
         });
 
-        console.log('Setting flow nodes:', flowNodes);
-        console.log('Setting flow edges:', flowEdges);
+        console.log('Setting flow nodes:', flowNodes.length);
         
-        // 使用setTimeout避免ResizeObserver错误
-        setTimeout(() => {
-          setNodes(flowNodes);
-          setEdges(flowEdges);
-          nodesRef.current = flowNodes;
-          edgesRef.current = flowEdges;
-          setLoading(false);
-          
-          // 如果有节点，确保画布适配所有节点
-          if (flowNodes.length > 0 && reactFlowInstance) {
-            setTimeout(() => {
-              reactFlowInstance.fitView({ padding: 0.2 });
-            }, 50);
-          }
-        }, 50);
+        // 直接设置节点和边，避免使用setTimeout引起的闪烁
+        setNodes(flowNodes);
+        setEdges(flowEdges);
+        nodesRef.current = flowNodes;
+        edgesRef.current = flowEdges;
+        
+        // 标记数据已加载完成
+        setDataLoaded(true);
+        
+        // 如果有节点，确保画布适配所有节点
+        if (flowNodes.length > 0 && reactFlowInstance) {
+          setTimeout(() => {
+            reactFlowInstance.fitView({ padding: 0.2 });
+          }, 100);
+        }
       } else {
         console.log('No nodes found for this branch');
-        // 清空节点和边，避免显示之前分支的节点
-        setTimeout(() => {
-          setNodes([]);
-          setEdges([]);
-          nodesRef.current = [];
-          edgesRef.current = [];
-          setLoading(false);
-        }, 50);
+        // 清空节点和边
+        setNodes([]);
+        setEdges([]);
+        nodesRef.current = [];
+        edgesRef.current = [];
       }
     } catch (error) {
       console.error('Error loading branch nodes:', error);
+    } finally {
       setLoading(false);
     }
-  }, [selectedBranch, setNodes, setEdges, reactFlowInstance]);
+  }, [selectedBranch, setNodes, setEdges, reactFlowInstance, dataLoaded]);
 
   // 当选中分支改变时加载新分支的节点
   useEffect(() => {
-    // 清空当前节点和边，避免闪烁
-    setTimeout(() => {
-      setNodes([]);
-      setEdges([]);
-    }, 10);
-    
     if (selectedBranch) {
+      // 只有在分支改变时才清空节点，避免频繁的状态更新
+      if (lastBranchIdRef.current !== selectedBranch.id) {
+        setNodes([]);
+        setEdges([]);
+        setDataLoaded(false);
+      }
+      
       loadBranchNodes();
     }
   }, [selectedBranch, loadBranchNodes, setNodes, setEdges]);
@@ -208,8 +218,11 @@ const ProjectFlow = ({ project, selectedBranch, onNodeSelect }) => {
         parent_id: nodeType === 'main' ? null : (selectedNode ? selectedNode.id : null)
       };
       
-      const createdNode = await createNode(newNodeData);
-      console.log('Node created:', createdNode);
+      await createNode(selectedBranch.id, newNodeData);
+      console.log('Node created, reloading nodes');
+      
+      // 设置为未加载状态，以便重新加载节点数据
+      setDataLoaded(false);
       
       // 重新加载节点以确保UI更新
       await loadBranchNodes();
@@ -236,7 +249,7 @@ const ProjectFlow = ({ project, selectedBranch, onNodeSelect }) => {
       </div>
       
       <div className="react-flow-wrapper" ref={reactFlowWrapper} style={{ width: '100%', height: '100%' }}>
-        {loading ? (
+        {loading && !dataLoaded ? (
           <div className="flex items-center justify-center h-full">
             <p className="text-gray-500">加载节点中...</p>
           </div>
@@ -258,6 +271,7 @@ const ProjectFlow = ({ project, selectedBranch, onNodeSelect }) => {
             elementsSelectable={true}
             snapToGrid={true}
             snapGrid={[15, 15]}
+            style={{ background: '#f5f5f5' }}
           >
             <Controls />
             <MiniMap
