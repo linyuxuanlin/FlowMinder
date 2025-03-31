@@ -105,6 +105,7 @@ main {
 
 .mermaid-content {
     min-height: 400px;
+    max-height: 700px;
 }
 
 /* 页脚 */
