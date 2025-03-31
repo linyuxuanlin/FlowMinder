@@ -120,8 +120,9 @@ main {
 }
 
 .mermaid-content {
-    min-height: 400px;
-    max-height: 700px;
+    min-height: 300px;
+    height: calc(100vh - 250px);
+    overflow-y: auto;
 }
 
 /* 自定义滚动条 - 吉卜力风格 */
