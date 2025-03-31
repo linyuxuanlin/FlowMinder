@@ -1,9 +1,6 @@
 # 分支2：后端API开发
 
 ```mermaid
----
-title: 后端API开发流程
----
 gitGraph TB:
     commit id: "初始化项目架构" tag: "P0"
     commit id: "数据库设计"

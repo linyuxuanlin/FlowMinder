@@ -1,9 +1,6 @@
 # 分支1：用户界面开发
 
 ```mermaid
----
-title: 用户界面开发流程
----
 gitGraph TB:
     commit id: "初始化项目" tag: "P0"
     commit id: "需求分析"

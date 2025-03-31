@@ -1,9 +1,6 @@
 # 分支3：部署与DevOps
 
 ```mermaid
----
-title: 部署与DevOps流程
----
 gitGraph TB:
     commit id: "基础设施规划" tag: "P0"
     commit id: "技术栈选型"
