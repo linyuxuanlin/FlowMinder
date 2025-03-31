@@ -1,4 +1,4 @@
-# 分支2：ATE测试程序开发
+# Branch2
 
 ```mermaid
 gitGraph TB:
