@@ -28,32 +28,27 @@ FlowMinder/
 └── README.md             # 项目说明
 ```
 
-## 快速开始
+## 使用方法
 
-### 前提条件
-
-- 安装 [Docker](https://www.docker.com/get-started) 和 [Docker Compose](https://docs.docker.com/compose/install/)
-
-### 运行应用
-
-1. 克隆此仓库：
+1. 确保已安装Docker和Docker Compose
+2. 克隆此仓库
+3. 在仓库根目录运行：
 
 ```bash
-git clone https://github.com/yourusername/FlowMinder.git
-cd FlowMinder
+docker-compose up -d
 ```
 
-2. 启动Docker容器：
+4. 浏览器访问：http://localhost:8080
+
+### 自定义项目路径
+
+您可以通过设置环境变量 `PROJECT_PATH` 来指定要使用的项目路径：
 
 ```bash
-docker compose up -d
+PROJECT_PATH=/path/to/your/project docker-compose up -d
 ```
 
-3. 打开浏览器访问应用：
-
-```
-http://localhost:8080
-```
+默认情况下，系统将使用仓库中的 `./example_project` 目录作为项目路径。
 
 ## 自定义项目
 
