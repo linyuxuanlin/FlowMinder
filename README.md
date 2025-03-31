@@ -46,6 +46,20 @@ cd FlowMinder
 2. 启动Docker容器：
 
 ```bash
+# 使用默认项目文件
+docker compose up -d
+
+# 或指定自定义项目路径
+CUSTOM_PROJECT_PATH=/path/to/your/project docker compose up -d
+```
+
+你也可以通过创建或编辑项目根目录下的`.env`文件来设置自定义项目路径：
+
+```bash
+# 编辑.env文件
+echo "CUSTOM_PROJECT_PATH=/path/to/your/project" > .env
+
+# 然后正常启动容器
 docker compose up -d
 ```
 

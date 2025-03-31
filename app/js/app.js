@@ -14,7 +14,7 @@ mermaid.initialize({
 });
 
 // 全局变量
-const projectPath = '../example_project';
+const projectPath = '/example_project';
 let currentBranch = 'Branch1'; // 默认分支
 
 // DOM元素
