@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FlowMinder - Git图形化项目管理</title>
+    <link rel="stylesheet" href="css/style.css">
+    <!-- 引入Mermaid.js -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>FlowMinder</h1>
+            <p>基于Git图形理念的项目管理工具</p>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="project-info">
+            <h2>项目分支</h2>
+            <div class="branch-selector">
+                <button class="branch-btn active" data-branch="Branch1">用户界面开发</button>
+                <button class="branch-btn" data-branch="Branch2">后端API开发</button>
+                <button class="branch-btn" data-branch="Branch3">部署与DevOps</button>
+            </div>
+        </div>
+
+        <div class="diagram-container">
+            <div id="mermaid-diagram" class="mermaid-content"></div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>FlowMinder &copy; 2024</p>
+        </div>
+    </footer>
+
+    <script src="js/app.js"></script>
+</body>
+</html> 

@@ -1,0 +1,21 @@
+services:
+  web:
+    image: nginx:alpine
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+      - ./app:/usr/share/nginx/html
+      - ./example_project:/usr/share/nginx/html/example_project
+    restart: unless-stopped
+
+  # 如果将来需要添加后端服务，可以在这里添加
+  # backend:
+  #   image: node:alpine
+  #   volumes:
+  #     - ./server:/app
+  #   working_dir: /app
+  #   command: npm start
+  #   ports:
+  #     - "3000:3000"
+  #   restart: unless-stopped
