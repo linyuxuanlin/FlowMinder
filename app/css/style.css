@@ -8,6 +8,19 @@
     --hover-color: #C4946A;
     --active-color: #B68C63;
     --shadow-color: rgba(93, 75, 58, 0.15);
+    
+    /* 响应式字体大小基准 */
+    --font-size-base: clamp(14px, 1vw, 16px);
+    --font-size-small: clamp(12px, 0.85vw, 14px);
+    --font-size-medium: clamp(16px, 1.2vw, 18px);
+    --font-size-large: clamp(20px, 1.6vw, 24px);
+    --font-size-xlarge: clamp(24px, 2vw, 32px);
+    
+    /* 响应式间距 */
+    --spacing-small: clamp(4px, 0.5vw, 8px);
+    --spacing-base: clamp(8px, 1vw, 12px);
+    --spacing-medium: clamp(12px, 1.5vw, 20px);
+    --spacing-large: clamp(20px, 2vw, 30px);
 }
 
 html, body {
@@ -31,20 +44,21 @@ body {
     background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%23e0d2b4' fill-opacity='0.1' fill-rule='evenodd'/%3E%3C/svg%3E");
     display: flex;
     flex-direction: column;
+    font-size: var(--font-size-base);
 }
 
 .container {
     width: 100%;
     max-width: 1200px;
     margin: 0 auto;
-    padding: 0 20px;
+    padding: 0 var(--spacing-medium);
 }
 
 /* 头部样式 */
 header {
     background-color: var(--primary-color);
     color: white;
-    padding: 6px 0;
+    padding: var(--spacing-small) 0;
     box-shadow: 0 3px 8px var(--shadow-color);
     border-bottom: 2px solid #C4946A;
     flex-shrink: 0;
@@ -58,7 +72,7 @@ header .container {
 }
 
 header h1 {
-    font-size: 1.6rem;
+    font-size: var(--font-size-xlarge);
     margin: 0;
     text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
     line-height: 1.4;
@@ -74,8 +88,8 @@ header p {
     color: var(--text-color);
     border: 1px solid var(--border-color);
     border-radius: 4px;
-    padding: 5px 10px;
-    font-size: 0.9rem;
+    padding: var(--spacing-small) var(--spacing-base);
+    font-size: var(--font-size-small);
     cursor: pointer;
     transition: all 0.2s ease;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -90,7 +104,7 @@ header p {
 
 /* 主内容区域 */
 main {
-    padding: 8px 0 6px;
+    padding: var(--spacing-small) 0 var(--spacing-small);
     display: flex;
     flex-direction: column;
     flex: 1;
@@ -98,8 +112,8 @@ main {
 }
 
 .project-info {
-    margin-top: 15px;
-    margin-bottom: 15px;
+    margin-top: var(--spacing-base);
+    margin-bottom: var(--spacing-base);
     display: flex;
     align-items: center;
     flex-shrink: 0;
@@ -108,7 +122,7 @@ main {
 }
 
 .project-info h2 {
-    font-size: 1.3rem;
+    font-size: var(--font-size-large);
     margin-bottom: 0;
     margin-right: 15px;
     color: var(--secondary-color);
@@ -120,14 +134,14 @@ main {
 /* 分支选择器 */
 .branch-selector {
     display: flex;
-    gap: 8px;
+    gap: var(--spacing-small);
     margin-bottom: 0;
     overflow-x: auto;
     flex-wrap: nowrap;
     scrollbar-width: none; /* Firefox */
     -ms-overflow-style: none; /* IE and Edge */
     position: relative;
-    padding: 5px 20px 5px 0;
+    padding: var(--spacing-small) var(--spacing-medium) var(--spacing-small) 0;
 }
 
 /* 隐藏滚动条 */
@@ -179,12 +193,12 @@ main {
 }
 
 .branch-btn {
-    padding: 6px 14px;
+    padding: var(--spacing-small) var(--spacing-medium);
     background-color: #fff;
     border: 1px solid var(--border-color);
     border-radius: 6px;
     cursor: pointer;
-    font-size: 1rem;
+    font-size: var(--font-size-base);
     transition: all 0.2s ease;
     box-shadow: 0 2px 4px var(--shadow-color);
     white-space: nowrap;
@@ -210,8 +224,8 @@ main {
     background-color: white;
     border: 1px solid var(--border-color);
     border-radius: 8px;
-    padding: 12px;
-    margin-bottom: 15px;
+    padding: var(--spacing-base);
+    margin-bottom: var(--spacing-medium);
     box-shadow: 0 3px 8px var(--shadow-color);
     overflow: hidden;
     flex: 1;
@@ -255,31 +269,42 @@ footer {
     background-color: var(--secondary-color);
     color: white;
     text-align: center;
-    padding: 12px 0;
-    font-size: 0.9rem;
+    padding: var(--spacing-base) 0;
+    font-size: var(--font-size-small);
     box-shadow: 0 -3px 8px var(--shadow-color);
     border-top: 2px solid #8C7158;
 }
 
 /* 响应式设计 */
 @media (max-width: 768px) {
+    :root {
+        /* 调整中等屏幕的字体大小 */
+        --font-size-base: clamp(13px, 1.1vw, 15px);
+        --font-size-small: clamp(11px, 0.9vw, 13px);
+        --font-size-medium: clamp(15px, 1.3vw, 17px);
+        --font-size-large: clamp(18px, 1.8vw, 22px);
+        --font-size-xlarge: clamp(22px, 2.2vw, 28px);
+    }
+    
     header h1 {
-        font-size: 1.6rem;
+        font-size: var(--font-size-xlarge);
     }
     
     header p {
-        font-size: 0.9rem;
+        font-size: var(--font-size-medium);
     }
     
     .project-info {
         flex-direction: row;
         align-items: center;
-        gap: 8px;
+        gap: var(--spacing-small);
+        margin-top: var(--spacing-small);
+        margin-bottom: var(--spacing-small);
     }
     
     .branch-selector {
         flex-direction: row;
-        gap: 8px;
+        gap: var(--spacing-small);
         overflow-x: auto;
     }
     
@@ -288,12 +313,58 @@ footer {
     }
 }
 
+@media (max-width: 480px) {
+    :root {
+        /* 调整小屏幕的字体大小 */
+        --font-size-base: clamp(12px, 1.2vw, 14px);
+        --font-size-small: clamp(10px, 1vw, 12px);
+        --font-size-medium: clamp(14px, 1.4vw, 16px);
+        --font-size-large: clamp(16px, 1.6vw, 20px);
+        --font-size-xlarge: clamp(20px, 2.4vw, 24px);
+    }
+    
+    .project-info {
+        margin-top: var(--spacing-small);
+        margin-bottom: var(--spacing-small);
+    }
+}
+
+/* 添加针对超小屏幕的媒体查询 
+@media (max-width: 360px) {
+    :root {
+        /* 调整超小屏幕的字体大小 */
+        --font-size-base: clamp(11px, 1.3vw, 13px);
+        --font-size-small: clamp(9px, 1.1vw, 11px);
+        --font-size-medium: clamp(13px, 1.5vw, 15px);
+        --font-size-large: clamp(15px, 1.7vw, 18px);
+        --font-size-xlarge: clamp(18px, 2.5vw, 22px);
+        
+        /* 调整超小屏幕的间距 */
+        --spacing-small: clamp(2px, 0.4vw, 6px);
+        --spacing-base: clamp(6px, 0.8vw, 10px);
+        --spacing-medium: clamp(10px, 1.2vw, 16px);
+        --spacing-large: clamp(16px, 1.6vw, 24px);
+    }
+    
+    .container {
+        padding: 0 var(--spacing-small);
+    }
+    
+    .project-info h2 {
+        font-size: var(--font-size-medium);
+    }
+    
+    .branch-btn {
+        padding: var(--spacing-small) var(--spacing-base);
+    }
+}*/
+
 /* 错误和信息提示样式 */
 .error-message, .info-message {
-    padding: 20px;
+    padding: var(--spacing-medium);
     text-align: center;
     border-radius: 8px;
-    margin: 20px auto;
+    margin: var(--spacing-medium) auto;
     max-width: 80%;
 }
 
@@ -307,5 +378,5 @@ footer {
     background-color: #e3f2fd;
     color: #1565c0;
     border: 1px solid #90caf9;
-    font-size: 1.1rem;
+    font-size: var(--font-size-medium);
 } 
