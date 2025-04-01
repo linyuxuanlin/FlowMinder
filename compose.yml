@@ -8,6 +8,8 @@ services:
       - ./app:/usr/share/nginx/html
       - ./example_project:/usr/share/nginx/html/mermaid #C:\Users\xxx
     restart: unless-stopped
+    tmpfs:
+      - /data
 
   # 如果将来需要添加后端服务，可以在这里添加
   # backend:
@@ -19,3 +21,5 @@ services:
   #   ports:
   #     - "3000:3000"
   #   restart: unless-stopped
+  #   tmpfs:
+  #     - /data
