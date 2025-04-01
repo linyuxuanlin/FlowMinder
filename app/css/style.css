@@ -84,7 +84,7 @@ header p {
 
 /* 项目选择按钮 */
 .project-select-btn {
-    background-color: white;
+    background-color: #F3EFE4;
     color: var(--text-color);
     border: 1px solid var(--border-color);
     border-radius: 4px;
