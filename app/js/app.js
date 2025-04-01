@@ -20,6 +20,7 @@ let availableBranches = []; // 可用的分支列表
 const DEFAULT_PATH = '/mermaid'; // 默认mermaid文件路径
 let lastModified = {}; // 存储文件的最后修改时间
 let lastBranchList = ''; // 存储上次的分支列表
+let currentProject = 'example_project3'; // 当前项目名称，默认为"example_project3"
 
 // DOM元素
 const diagramContainer = document.getElementById('mermaid-diagram');
@@ -48,9 +49,15 @@ async function loadMermaidFromServer() {
             .filter(href => href && href.endsWith('.md'))
             .map(href => href.replace(/\.md$/, ''));
         
-        // 更新UI，显示所选文件夹名称
-        selectProjectBtn.textContent = `项目: 已自动加载`;
-        selectProjectBtn.disabled = true; // 禁用选择按钮
+        // 获取当前项目名称
+        // 从URL路径中提取项目名称（通常是DEFAULT_PATH的最后一部分）
+        const pathParts = window.location.pathname.split('/');
+        const lastPath = pathParts[pathParts.length - 2] || 'example_project3';
+        currentProject = lastPath === 'mermaid' ? 'example_project3' : lastPath;
+        
+        // 更新UI，显示当前项目名称
+        selectProjectBtn.textContent = `${currentProject}`;
+        selectProjectBtn.disabled = false; // 启用选择按钮
         
         // 更新分支按钮
         updateBranchButtons();
@@ -103,6 +110,9 @@ async function selectProjectFolder() {
         const files = Array.from(input.files);
         const folderName = files[0].webkitRelativePath.split('/')[0];
         
+        // 储存当前项目名称
+        currentProject = folderName;
+        
         // 筛选出md文件并按分支名称存储
         selectedFiles = {};
         availableBranches = [];
@@ -121,7 +131,7 @@ async function selectProjectFolder() {
         });
         
         // 更新UI，显示所选文件夹名称
-        selectProjectBtn.textContent = `项目: ${folderName}`;
+        selectProjectBtn.textContent = `${folderName}`;
         
         // 更新分支按钮
         updateBranchButtons();
@@ -218,21 +228,29 @@ async function checkFileUpdated(branchName) {
  */
 async function fetchMermaidContent(branchName) {
     try {
-        // 从服务器获取文件内容
-        const response = await fetch(`${DEFAULT_PATH}/${branchName}.md`, {
-            cache: 'no-cache' // 添加no-cache确保获取最新内容
-        });
-        if (!response.ok) {
-            throw new Error(`无法获取${branchName}.md文件`);
-        }
+        let fileContent = '';
         
-        // 保存Last-Modified
-        const modified = response.headers.get('Last-Modified');
-        if (modified) {
-            lastModified[branchName] = modified;
+        // 判断是使用本地文件还是服务器文件
+        if (Object.keys(selectedFiles).length > 0 && selectedFiles[branchName]) {
+            // 从本地文件中读取内容
+            fileContent = await readFileAsText(selectedFiles[branchName]);
+        } else {
+            // 从服务器获取文件内容
+            const response = await fetch(`${DEFAULT_PATH}/${branchName}.md`, {
+                cache: 'no-cache' // 添加no-cache确保获取最新内容
+            });
+            if (!response.ok) {
+                throw new Error(`无法获取${branchName}.md文件`);
+            }
+            
+            // 保存Last-Modified
+            const modified = response.headers.get('Last-Modified');
+            if (modified) {
+                lastModified[branchName] = modified;
+            }
+            
+            fileContent = await response.text();
         }
-        
-        const fileContent = await response.text();
         
         // 提取mermaid内容
         const mermaidMatch = fileContent.match(/```mermaid([\s\S]*?)```/);
@@ -393,6 +411,11 @@ async function checkBranchListUpdated() {
  */
 async function updateBranchList() {
     try {
+        // 如果使用的是本地文件，则不需要从服务器更新
+        if (Object.keys(selectedFiles).length > 0) {
+            return;
+        }
+        
         const response = await fetch(`${DEFAULT_PATH}/`);
         if (!response.ok) {
             throw new Error('无法获取mermaid文件列表');
@@ -409,17 +432,20 @@ async function updateBranchList() {
             .filter(href => href && href.endsWith('.md'))
             .map(href => href.replace(/\.md$/, ''));
         
+        // 确保显示的是当前项目名称
+        selectProjectBtn.textContent = `${currentProject}`;
+        
         // 更新分支按钮
         updateBranchButtons();
         
-        // 如果当前分支不存在，切换到第一个可用分支
-        if (!availableBranches.includes(currentBranch)) {
-            if (availableBranches.length > 0) {
+        // 检查当前分支是否在可用分支中，如果不在则加载第一个可用分支
+        if (availableBranches.length > 0) {
+            if (!availableBranches.includes(currentBranch)) {
                 currentBranch = availableBranches[0];
-                await loadBranchDiagram(currentBranch, true);
-            } else {
-                diagramContainer.innerHTML = '<div class="error-message">未找到任何markdown文件</div>';
+                await loadBranchDiagram(currentBranch);
             }
+        } else {
+            diagramContainer.innerHTML = '<div class="error-message">未找到任何markdown文件</div>';
         }
     } catch (error) {
         console.error('更新分支列表时出错:', error);
