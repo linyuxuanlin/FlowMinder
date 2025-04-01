@@ -45,9 +45,17 @@ async function loadMermaidFromServer() {
         // 找到所有链接，筛选出.md文件
         const links = Array.from(htmlDoc.querySelectorAll('a'));
         availableBranches = links
-            .map(link => link.getAttribute('href'))
-            .filter(href => href && href.endsWith('.md'))
-            .map(href => href.replace(/\.md$/, ''));
+            .map(link => {
+                // 获取原始文件名（可能是URL编码的）
+                const href = link.getAttribute('href');
+                if (!href || !href.endsWith('.md')) return null;
+                
+                // 解码URL编码的文件名
+                const decodedName = decodeURIComponent(href);
+                // 去掉.md后缀
+                return decodedName.replace(/\.md$/, '');
+            })
+            .filter(name => name !== null);
         
         // 获取当前项目名称
         // 从URL路径中提取项目名称
@@ -200,7 +208,9 @@ function updateBranchButtons() {
  */
 async function checkFileUpdated(branchName) {
     try {
-        const url = `${DEFAULT_PATH}/${branchName}.md`;
+        // 对分支名进行URL编码，支持中文文件名
+        const encodedBranchName = encodeURIComponent(branchName);
+        const url = `${DEFAULT_PATH}/${encodedBranchName}.md`;
         const response = await fetch(url, {
             method: 'HEAD',
             cache: 'no-cache'
@@ -243,8 +253,9 @@ async function fetchMermaidContent(branchName) {
             // 从本地文件中读取内容
             fileContent = await readFileAsText(selectedFiles[branchName]);
         } else {
-            // 从服务器获取文件内容
-            const response = await fetch(`${DEFAULT_PATH}/${branchName}.md`, {
+            // 从服务器获取文件内容，需要对中文文件名进行编码
+            const encodedBranchName = encodeURIComponent(branchName);
+            const response = await fetch(`${DEFAULT_PATH}/${encodedBranchName}.md`, {
                 cache: 'no-cache' // 添加no-cache确保获取最新内容
             });
             if (!response.ok) {
@@ -394,9 +405,15 @@ async function checkBranchListUpdated() {
         // 获取当前分支列表
         const links = Array.from(htmlDoc.querySelectorAll('a'));
         const currentBranchList = links
-            .map(link => link.getAttribute('href'))
-            .filter(href => href && href.endsWith('.md'))
-            .map(href => href.replace(/\.md$/, ''))
+            .map(link => {
+                const href = link.getAttribute('href');
+                if (!href || !href.endsWith('.md')) return null;
+                
+                // 解码URL编码的文件名
+                const decodedName = decodeURIComponent(href);
+                return decodedName.replace(/\.md$/, '');
+            })
+            .filter(name => name !== null)
             .sort()
             .join(',');
         
@@ -433,12 +450,18 @@ async function updateBranchList() {
         const parser = new DOMParser();
         const htmlDoc = parser.parseFromString(fileListText, 'text/html');
         
-        // 找到所有链接，筛选出.md文件
+        // 找到所有链接，筛选出.md文件，并正确解码URL编码的文件名
         const links = Array.from(htmlDoc.querySelectorAll('a'));
         availableBranches = links
-            .map(link => link.getAttribute('href'))
-            .filter(href => href && href.endsWith('.md'))
-            .map(href => href.replace(/\.md$/, ''));
+            .map(link => {
+                const href = link.getAttribute('href');
+                if (!href || !href.endsWith('.md')) return null;
+                
+                // 解码URL编码的文件名
+                const decodedName = decodeURIComponent(href);
+                return decodedName.replace(/\.md$/, '');
+            })
+            .filter(name => name !== null);
         
         // 确保显示的是当前项目名称
         selectProjectBtn.textContent = `${currentProject}`;
