@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <style>
+    .primary {
+      fill: #D4A76A;
+    }
+    .secondary {
+      fill: #8C7158;
+    }
+    .background {
+      fill: #F9F4E8;
+    }
+    .accent {
+      fill: #5D4B3A;
+    }
+    .highlight {
+      fill: #C4946A;
+    }
+  </style>
+  
+  <!-- 背景 -->
+  <circle cx="16" cy="16" r="15" class="background" />
+  
+  <!-- 分支流图形元素 -->
+  <path d="M8,8 C12,8 12,16 16,16 C20,16 20,8 24,8" stroke="#8C7158" stroke-width="2" fill="none" />
+  <path d="M8,24 C12,24 12,16 16,16 C20,16 20,24 24,24" stroke="#D4A76A" stroke-width="2" fill="none" />
+  
+  <!-- 节点圆点 -->
+  <circle cx="8" cy="8" r="3" class="secondary" />
+  <circle cx="24" cy="8" r="3" class="secondary" />
+  <circle cx="16" cy="16" r="3.5" class="primary" />
+  <circle cx="8" cy="24" r="3" class="primary" />
+  <circle cx="24" cy="24" r="3" class="primary" />
+  
+  <!-- 外环 -->
+  <circle cx="16" cy="16" r="15" fill="none" stroke="#E0D2B4" stroke-width="1" />
+</svg> 
