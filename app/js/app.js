@@ -20,7 +20,7 @@ let availableBranches = []; // 可用的分支列表
 const DEFAULT_PATH = '/mermaid'; // 默认mermaid文件路径
 let lastModified = {}; // 存储文件的最后修改时间
 let lastBranchList = ''; // 存储上次的分支列表
-let currentProject = 'project1'; // 当前项目名称，默认为"project1"
+let currentProject = ''; // 当前项目名称，初始为空字符串
 
 // DOM元素
 const diagramContainer = document.getElementById('mermaid-diagram');
@@ -50,10 +50,18 @@ async function loadMermaidFromServer() {
             .map(href => href.replace(/\.md$/, ''));
         
         // 获取当前项目名称
-        // 从URL路径中提取项目名称（通常是DEFAULT_PATH的最后一部分）
+        // 从URL路径中提取项目名称
         const pathParts = window.location.pathname.split('/');
-        const lastPath = pathParts[pathParts.length - 2] || 'project1';
-        currentProject = lastPath === 'mermaid' ? 'project1' : lastPath;
+        // 获取mermaid文件夹的真实名称
+        let folderName = '';
+        for (let i = 0; i < pathParts.length; i++) {
+            if (pathParts[i] === 'mermaid' && i < pathParts.length - 1) {
+                folderName = pathParts[i + 1];
+                break;
+            }
+        }
+        // 如果找不到特定项目名，就使用mermaid文件夹的名称
+        currentProject = folderName || pathParts[pathParts.length - 2] || 'example_project';
         
         // 更新UI，显示当前项目名称
         selectProjectBtn.textContent = `${currentProject}`;
@@ -110,7 +118,7 @@ async function selectProjectFolder() {
         const files = Array.from(input.files);
         const folderName = files[0].webkitRelativePath.split('/')[0];
         
-        // 储存当前项目名称
+        // 储存当前项目名称（使用文件夹的实际名称）
         currentProject = folderName;
         
         // 筛选出md文件并按分支名称存储
