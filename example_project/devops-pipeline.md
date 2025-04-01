@@ -2,18 +2,18 @@
 
 ```mermaid
 gitGraph TB:
-    commit id: "CI/CD系统规划" tag: "P0"
+    commit id: "CI/CD系统规划" tag: "v0.1"
     commit id: "工具链选型"
     branch infra-setup
     checkout infra-setup
-    commit id: "Jenkins部署配置" tag: "P1"
+    commit id: "Jenkins部署配置" tag: "v0.2"
     commit id: "Docker容器环境搭建"
     commit id: "Kubernetes集群配置"
     checkout main
     merge infra-setup
     branch cicd-pipeline
     checkout cicd-pipeline
-    commit id: "自动构建流程实现" tag: "P2"
+    commit id: "自动构建流程实现" tag: "v0.3"
     commit id: "自动部署流程实现"
     branch monitoring
     checkout monitoring
@@ -25,21 +25,22 @@ gitGraph TB:
     merge cicd-pipeline
     branch production-env
     checkout production-env
-    commit id: "生产环境配置" tag: "P3"
+    commit id: "生产环境配置" tag: "v0.4"
     commit id: "高可用集群配置"
     commit id: "系统稳定性验证"
     commit id: "故障恢复流程建立"
     checkout main
     merge production-env
-    commit id: "DevOps系统v1.0完成" type: HIGHLIGHT tag: "RELEASE"
+    commit id: "DevOps系统v1.0完成" type: HIGHLIGHT tag: "v1.0"
 ```
 
 ## 任务状态
 
-- [x] P0: CI/CD系统规划与工具选型
-- [x] P1: 基础设施搭建完成
-- [x] P2: 流水线实现（性能监控面板未完成）
-- [x] P3: 生产环境配置完成
+- [x] CI/CD系统规划与工具选型 (v0.1)
+- [x] 基础设施搭建完成 (v0.2)
+- [x] 流水线实现 (v0.3) (性能监控面板未完成)
+- [x] 生产环境配置完成 (v0.4)
+- [x] DevOps系统发布 (v1.0)
 
 ## 系统组件
 

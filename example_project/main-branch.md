@@ -1,17 +1,17 @@
 ```mermaid
 gitGraph TB:
-    commit id: "初始化项目" tag: "P0"
+    commit id: "项目初始化" tag: "v0.1"
     commit id: "需求分析与收集"
     branch architecture
     checkout architecture
-    commit id: "系统架构设计" tag: "P1"
+    commit id: "系统架构设计" tag: "v0.2"
     commit id: "用户界面原型设计"
     commit id: "数据模型设计"
     checkout main
     merge architecture
     branch develop
     checkout develop
-    commit id: "后端API实现" tag: "P2"
+    commit id: "后端API实现" tag: "v0.3"
     commit id: "数据库设计与实现"
     branch frontend
     checkout frontend
@@ -22,23 +22,23 @@ gitGraph TB:
     commit id: "业务逻辑实现"
     checkout main
     merge develop
-    branch release/testing
-    checkout release/testing
-    commit id: "单元测试与集成测试" tag: "P3" 
+    branch release
+    checkout release
+    commit id: "单元测试与集成测试" tag: "v0.4" 
     commit id: "性能优化"
     commit id: "CI/CD流程配置"
     checkout main
-    merge release/testing
-    commit id: "软件v1.0发布" type: HIGHLIGHT tag: "RELEASE"
+    merge release
+    commit id: "软件v1.0发布" type: HIGHLIGHT tag: "v1.0"
 ```
 
 ## 项目进度
 
-- [x] P0: 项目初始化与需求分析
-- [x] P1: 架构设计阶段完成
-- [x] P2: 核心功能开发完成
-- [x] P3: 测试与部署阶段完成
-- [x] RELEASE: 产品正式发布
+- [x] 项目初始化与需求分析 (v0.1)
+- [x] 架构设计阶段完成 (v0.2)
+- [x] 核心功能开发完成 (v0.3)
+- [x] 测试与部署阶段完成 (v0.4)
+- [x] 产品正式发布 (v1.0)
 
 ## 当前状态
 
