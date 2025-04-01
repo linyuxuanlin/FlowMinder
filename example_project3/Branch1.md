@@ -67,7 +67,6 @@ gitGraph TB:
     commit
     commit
 ```
-
 ## 任务状态
 
 - [x] P0: 项目初始化与芯片测试需求分析

@@ -47,8 +47,14 @@ header {
     padding: 6px 0;
     box-shadow: 0 3px 8px var(--shadow-color);
     border-bottom: 2px solid #C4946A;
-    text-align: center;
     flex-shrink: 0;
+}
+
+header .container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
 }
 
 header h1 {
@@ -60,6 +66,26 @@ header h1 {
 
 header p {
     display: none;
+}
+
+/* 项目选择按钮 */
+.project-select-btn {
+    background-color: white;
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 5px 10px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.project-select-btn:hover {
+    background-color: #F3EFE4;
+    border-color: var(--hover-color);
+    transform: translateY(-1px);
+    box-shadow: 0 3px 5px rgba(0, 0, 0, 0.15);
 }
 
 /* 主内容区域 */
@@ -203,4 +229,26 @@ footer {
     .branch-btn {
         width: 100%;
     }
+}
+
+/* 错误和信息提示样式 */
+.error-message, .info-message {
+    padding: 20px;
+    text-align: center;
+    border-radius: 8px;
+    margin: 20px auto;
+    max-width: 80%;
+}
+
+.error-message {
+    background-color: #ffebee;
+    color: #c62828;
+    border: 1px solid #ef9a9a;
+}
+
+.info-message {
+    background-color: #e3f2fd;
+    color: #1565c0;
+    border: 1px solid #90caf9;
+    font-size: 1.1rem;
 } 
