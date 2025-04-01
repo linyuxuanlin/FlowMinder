@@ -49,6 +49,18 @@ function initScrollGradients() {
             updateScrollGradients(branchSelector, projectInfo);
         });
         
+        // 添加鼠标滚轮事件监听，实现无需按住shift即可横向滚动
+        branchSelector.addEventListener('wheel', function(e) {
+            // 阻止默认的垂直滚动
+            e.preventDefault();
+            
+            // 将鼠标滚轮的垂直滚动量转换为水平滚动
+            branchSelector.scrollLeft += e.deltaY;
+            
+            // 更新滚动渐变效果
+            updateScrollGradients(branchSelector, projectInfo);
+        });
+        
         // 窗口大小改变时重新检查
         window.addEventListener('resize', function() {
             updateScrollGradients(branchSelector, projectInfo);
