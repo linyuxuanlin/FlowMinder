@@ -17,10 +17,57 @@ mermaid.initialize({
 let selectedFiles = {}; // 存储选择的文件对象
 let currentBranch = 'Branch1'; // 默认分支
 let availableBranches = []; // 可用的分支列表
+const DEFAULT_PATH = '/mermaid'; // 默认mermaid文件路径
+let lastModified = {}; // 存储文件的最后修改时间
 
 // DOM元素
 const diagramContainer = document.getElementById('mermaid-diagram');
 const selectProjectBtn = document.getElementById('select-project-btn');
+
+/**
+ * 从服务器加载mermaid文件
+ */
+async function loadMermaidFromServer() {
+    try {
+        // 获取服务器上可用的mermaid文件
+        const response = await fetch(`${DEFAULT_PATH}/`);
+        if (!response.ok) {
+            throw new Error('无法获取mermaid文件列表');
+        }
+        
+        // 解析目录中的文件
+        const fileListText = await response.text();
+        const parser = new DOMParser();
+        const htmlDoc = parser.parseFromString(fileListText, 'text/html');
+        
+        // 找到所有链接，筛选出.md文件
+        const links = Array.from(htmlDoc.querySelectorAll('a'));
+        availableBranches = links
+            .map(link => link.getAttribute('href'))
+            .filter(href => href && href.endsWith('.md'))
+            .map(href => href.replace(/\.md$/, ''));
+        
+        // 更新UI，显示所选文件夹名称
+        selectProjectBtn.textContent = `项目: 已自动加载`;
+        selectProjectBtn.disabled = true; // 禁用选择按钮
+        
+        // 更新分支按钮
+        updateBranchButtons();
+        
+        // 加载默认分支或第一个可用分支
+        if (availableBranches.length > 0) {
+            if (!availableBranches.includes(currentBranch)) {
+                currentBranch = availableBranches[0];
+            }
+            await loadBranchDiagram(currentBranch);
+        } else {
+            diagramContainer.innerHTML = '<div class="error-message">未找到任何markdown文件</div>';
+        }
+    } catch (error) {
+        console.error('加载mermaid文件时出错:', error);
+        diagramContainer.innerHTML = `<div class="error-message">加载失败: ${error.message}</div>`;
+    }
+}
 
 /**
  * 选择项目文件夹功能
@@ -128,32 +175,63 @@ function updateBranchButtons() {
 }
 
 /**
+ * 检查文件是否有更新
+ * @param {string} branchName - 分支名称
+ * @returns {Promise<boolean>} - 文件是否有更新
+ */
+async function checkFileUpdated(branchName) {
+    try {
+        const url = `${DEFAULT_PATH}/${branchName}.md`;
+        const response = await fetch(url, {
+            method: 'HEAD',
+            cache: 'no-cache'
+        });
+        
+        if (!response.ok) {
+            return false;
+        }
+        
+        // 获取Last-Modified头
+        const modified = response.headers.get('Last-Modified');
+        if (!modified) {
+            return true; // 如果无法获取修改时间，假设文件已更新
+        }
+        
+        // 检查是否与上次记录的修改时间不同
+        if (!lastModified[branchName] || lastModified[branchName] !== modified) {
+            lastModified[branchName] = modified;
+            return true;
+        }
+        
+        return false;
+    } catch (error) {
+        console.error('检查文件更新时出错:', error);
+        return false;
+    }
+}
+
+/**
  * 读取markdown文件并提取mermaid内容
  * @param {string} branchName - 分支名称
  * @returns {Promise<{content: string, success: boolean, errorMessage: string}>} - 返回包含成功状态和内容/错误信息的对象
  */
 async function fetchMermaidContent(branchName) {
-    // 检查是否已选择文件
-    if (Object.keys(selectedFiles).length === 0) {
-        return {
-            success: false,
-            errorMessage: '请先选择项目文件夹',
-            content: ''
-        };
-    }
-    
-    // 检查是否有对应分支的文件
-    if (!selectedFiles[branchName]) {
-        return {
-            success: false,
-            errorMessage: `未找到分支 "${branchName}" 的文件`,
-            content: ''
-        };
-    }
-    
     try {
-        // 使用FileReader读取文件内容
-        const fileContent = await readFileAsText(selectedFiles[branchName]);
+        // 从服务器获取文件内容
+        const response = await fetch(`${DEFAULT_PATH}/${branchName}.md`, {
+            cache: 'no-cache' // 添加no-cache确保获取最新内容
+        });
+        if (!response.ok) {
+            throw new Error(`无法获取${branchName}.md文件`);
+        }
+        
+        // 保存Last-Modified
+        const modified = response.headers.get('Last-Modified');
+        if (modified) {
+            lastModified[branchName] = modified;
+        }
+        
+        const fileContent = await response.text();
         
         // 提取mermaid内容
         const mermaidMatch = fileContent.match(/```mermaid([\s\S]*?)```/);
@@ -195,9 +273,6 @@ function readFileAsText(file) {
  * @param {object} contentObj - 包含图表内容和状态的对象
  */
 async function renderMermaidDiagram(contentObj) {
-    // 清空容器
-    diagramContainer.innerHTML = '';
-    
     // 如果获取内容失败，直接显示错误信息
     if (!contentObj.success) {
         diagramContainer.innerHTML = `<div class="error-message">${contentObj.errorMessage}</div>`;
@@ -205,9 +280,31 @@ async function renderMermaidDiagram(contentObj) {
     }
     
     try {
-        // 渲染图表
+        // 保存当前容器的属性
+        const oldContainer = diagramContainer.cloneNode(false);
+        
+        // 创建临时容器进行渲染
+        const tempContainer = document.createElement('div');
+        tempContainer.style.display = 'none';
+        document.body.appendChild(tempContainer);
+        
+        // 渲染图表到临时容器
         const { svg } = await mermaid.render('mermaid-diagram-svg', contentObj.content);
-        diagramContainer.innerHTML = svg;
+        tempContainer.innerHTML = svg;
+        
+        // 只有在内容真正发生变化时才更新主容器
+        if (diagramContainer.innerHTML !== tempContainer.innerHTML) {
+            // 复制当前滚动位置
+            const svgElement = tempContainer.querySelector('svg');
+            if (svgElement) {
+                // 将渲染好的内容移动到主容器
+                diagramContainer.innerHTML = '';
+                diagramContainer.appendChild(svgElement);
+            }
+        }
+        
+        // 移除临时容器
+        document.body.removeChild(tempContainer);
     } catch (error) {
         console.error('渲染Mermaid图表时出错:', error);
         diagramContainer.innerHTML = `<div class="error-message">图表渲染失败: ${error.message}</div>`;
@@ -217,8 +314,15 @@ async function renderMermaidDiagram(contentObj) {
 /**
  * 加载分支图表
  * @param {string} branchName - 分支名称
+ * @param {boolean} preserveScroll - 是否保留滚动位置
  */
-async function loadBranchDiagram(branchName) {
+async function loadBranchDiagram(branchName, preserveScroll = false) {
+    // 保存当前滚动位置
+    const scrollPosition = preserveScroll ? {
+        x: window.scrollX,
+        y: window.scrollY
+    } : null;
+    
     // 更新当前分支
     currentBranch = branchName;
     
@@ -234,20 +338,29 @@ async function loadBranchDiagram(branchName) {
     // 获取并渲染图表
     const contentObj = await fetchMermaidContent(branchName);
     await renderMermaidDiagram(contentObj);
+    
+    // 恢复滚动位置
+    if (scrollPosition) {
+        window.scrollTo(scrollPosition.x, scrollPosition.y);
+    }
 }
 
 // 事件监听器 - 选择项目按钮点击
 selectProjectBtn.addEventListener('click', selectProjectFolder);
 
-// 初始化 - 提示用户选择项目
+// 初始化 - 自动加载默认路径的mermaid文件
 document.addEventListener('DOMContentLoaded', () => {
-    // 不再自动加载预设项目，而是显示提示
-    diagramContainer.innerHTML = '<div class="info-message">请点击右上角"选择项目文件夹"按钮选择本地Mermaid项目</div>';
+    // 自动加载服务器上的mermaid文件
+    loadMermaidFromServer();
     
-    // 设置自动刷新 (每10秒，仅当已选择项目路径时)
-    setInterval(() => {
-        if (Object.keys(selectedFiles).length > 0) {
-            loadBranchDiagram(currentBranch);
+    // 设置自动刷新 (每10秒检查更新)
+    setInterval(async () => {
+        if (currentBranch) {
+            // 只有在文件更新时才重新加载图表
+            const hasUpdates = await checkFileUpdated(currentBranch);
+            if (hasUpdates) {
+                loadBranchDiagram(currentBranch, true); // 保留滚动位置
+            }
         }
     }, 10000);
 }); 
