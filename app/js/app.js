@@ -27,6 +27,63 @@ const diagramContainer = document.getElementById('mermaid-diagram');
 const selectProjectBtn = document.getElementById('select-project-btn');
 
 /**
+ * 初始化分支选择器滚动渐变效果
+ */
+function initScrollGradients() {
+    const branchSelector = document.querySelector('.branch-selector');
+    const projectInfo = document.querySelector('.project-info');
+    
+    if (branchSelector && projectInfo) {
+        // 获取项目分支标题元素并设置初始宽度
+        const titleElement = projectInfo.querySelector('h2');
+        if (titleElement) {
+            const titleWidth = titleElement.offsetWidth;
+            projectInfo.style.setProperty('--title-width', `${titleWidth + 15}px`);
+        }
+        
+        // 初始检查是否需要显示渐变
+        updateScrollGradients(branchSelector, projectInfo);
+        
+        // 添加滚动事件监听器
+        branchSelector.addEventListener('scroll', function() {
+            updateScrollGradients(branchSelector, projectInfo);
+        });
+        
+        // 窗口大小改变时重新检查
+        window.addEventListener('resize', function() {
+            updateScrollGradients(branchSelector, projectInfo);
+        });
+    }
+}
+
+/**
+ * 更新滚动渐变效果的显示
+ * @param {HTMLElement} scrollElement - 滚动元素
+ * @param {HTMLElement} containerElement - 容器元素
+ */
+function updateScrollGradients(scrollElement, containerElement) {
+    if (!scrollElement || !containerElement) return;
+    
+    // 获取项目分支标题元素
+    const titleElement = containerElement.querySelector('h2');
+    if (titleElement) {
+        // 动态调整左侧渐变遮罩的位置，让它从标题元素之后开始
+        const titleWidth = titleElement.offsetWidth;
+        const leftGradient = window.getComputedStyle(containerElement, '::before');
+        containerElement.style.setProperty('--title-width', `${titleWidth + 15}px`); // 15px是一个合适的偏移量
+    }
+    
+    const hasLeftScroll = scrollElement.scrollLeft > 5;
+    const hasRightScroll = scrollElement.scrollWidth > scrollElement.clientWidth + scrollElement.scrollLeft + 5;
+    
+    // 设置左侧渐变的可见性
+    containerElement.classList.toggle('show-left-gradient', hasLeftScroll);
+    
+    // 设置右侧渐变的可见性
+    containerElement.classList.toggle('show-right-gradient', hasRightScroll);
+}
+
+/**
  * 从服务器加载mermaid文件
  */
 async function loadMermaidFromServer() {
@@ -199,6 +256,12 @@ function updateBranchButtons() {
         
         branchSelector.appendChild(button);
     });
+    
+    // 更新渐变效果显示
+    const projectInfo = document.querySelector('.project-info');
+    if (projectInfo) {
+        updateScrollGradients(branchSelector, projectInfo);
+    }
 }
 
 /**
@@ -483,28 +546,77 @@ async function updateBranchList() {
     }
 }
 
-// 事件监听器 - 选择项目按钮点击
-selectProjectBtn.addEventListener('click', selectProjectFolder);
-
-// 初始化 - 自动加载默认路径的mermaid文件
-document.addEventListener('DOMContentLoaded', () => {
-    // 自动加载服务器上的mermaid文件
-    loadMermaidFromServer();
-    
-    // 设置自动刷新 (每10秒检查更新)
-    setInterval(async () => {
+/**
+ * 定期检查更新
+ */
+async function checkForUpdates() {
+    try {
+        // 检查分支列表是否有更新
+        const branchListUpdated = await checkBranchListUpdated();
+        if (branchListUpdated) {
+            await updateBranchList();
+        }
+        
+        // 检查当前分支文件是否有更新
         if (currentBranch) {
-            // 检查分支列表是否有更新
-            const branchListUpdated = await checkBranchListUpdated();
-            if (branchListUpdated) {
-                await updateBranchList();
-            }
-            
-            // 检查当前分支内容是否有更新
             const hasUpdates = await checkFileUpdated(currentBranch);
             if (hasUpdates) {
                 loadBranchDiagram(currentBranch, true); // 保留滚动位置
             }
         }
-    }, 10000);
+        
+        // 检查并更新渐变效果
+        const branchSelector = document.querySelector('.branch-selector');
+        const projectInfo = document.querySelector('.project-info');
+        if (branchSelector && projectInfo) {
+            updateScrollGradients(branchSelector, projectInfo);
+        }
+    } catch (error) {
+        console.error('检查更新时出错:', error);
+    }
+}
+
+// 事件监听器 - 选择项目按钮点击
+selectProjectBtn.addEventListener('click', selectProjectFolder);
+
+/**
+ * 定期检查更新
+ */
+async function checkForUpdates() {
+    try {
+        // 检查分支列表是否有更新
+        const branchListUpdated = await checkBranchListUpdated();
+        if (branchListUpdated) {
+            await updateBranchList();
+        }
+        
+        // 检查当前分支文件是否有更新
+        if (currentBranch) {
+            const hasUpdates = await checkFileUpdated(currentBranch);
+            if (hasUpdates) {
+                loadBranchDiagram(currentBranch, true); // 保留滚动位置
+            }
+        }
+        
+        // 检查并更新渐变效果
+        const branchSelector = document.querySelector('.branch-selector');
+        const projectInfo = document.querySelector('.project-info');
+        if (branchSelector && projectInfo) {
+            updateScrollGradients(branchSelector, projectInfo);
+        }
+    } catch (error) {
+        console.error('检查更新时出错:', error);
+    }
+}
+
+// 页面加载完成后初始化
+document.addEventListener('DOMContentLoaded', function() {
+    // 初始化渐变遮罩控制
+    initScrollGradients();
+    
+    // 加载服务器上的mermaid文件
+    loadMermaidFromServer();
+    
+    // 定期检查更新 (每10秒检查一次)
+    setInterval(checkForUpdates, 10000);
 }); 

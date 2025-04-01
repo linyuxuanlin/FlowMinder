@@ -102,16 +102,19 @@ main {
     margin-bottom: 15px;
     display: flex;
     align-items: center;
-    flex-wrap: wrap;
-    gap: 10px;
     flex-shrink: 0;
+    position: relative;
+    overflow: hidden;
 }
 
 .project-info h2 {
     font-size: 1.3rem;
     margin-bottom: 0;
+    margin-right: 15px;
     color: var(--secondary-color);
     text-shadow: 0.5px 0.5px 1px rgba(255, 255, 255, 0.8);
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 
 /* 分支选择器 */
@@ -119,8 +122,60 @@ main {
     display: flex;
     gap: 8px;
     margin-bottom: 0;
-    flex-wrap: wrap;
-    flex: 1;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE and Edge */
+    position: relative;
+    padding: 5px 20px 5px 0;
+}
+
+/* 隐藏滚动条 */
+.branch-selector::-webkit-scrollbar {
+    display: none;
+}
+
+/* 左侧渐变遮罩 */
+.project-info::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: var(--title-width, 0);
+    height: 100%;
+    width: 50px;
+    background: linear-gradient(to right, var(--background-color) 20%, transparent 100%);
+    z-index: 1;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+/* 右侧渐变遮罩 */
+.project-info::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    height: 100%;
+    width: 50px;
+    background: linear-gradient(to left, var(--background-color) 20%, transparent 100%);
+    z-index: 1;
+    pointer-events: none;
+    opacity: 1;
+    transition: opacity 0.3s ease;
+}
+
+/* 控制渐变显示 */
+.project-info.show-left-gradient::before {
+    opacity: 1;
+}
+
+.project-info.show-right-gradient::after {
+    opacity: 1;
+}
+
+.project-info:not(.show-right-gradient)::after {
+    opacity: 0;
 }
 
 .branch-btn {
@@ -132,6 +187,8 @@ main {
     font-size: 1rem;
     transition: all 0.2s ease;
     box-shadow: 0 2px 4px var(--shadow-color);
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 
 .branch-btn:hover {
@@ -215,19 +272,19 @@ footer {
     }
     
     .project-info {
-        flex-direction: column;
-        align-items: flex-start;
+        flex-direction: row;
+        align-items: center;
         gap: 8px;
     }
     
     .branch-selector {
-        flex-direction: column;
+        flex-direction: row;
         gap: 8px;
-        width: 100%;
+        overflow-x: auto;
     }
     
     .branch-btn {
-        width: 100%;
+        width: auto;
     }
 }
 
