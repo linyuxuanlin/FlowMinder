@@ -329,35 +329,7 @@ footer {
     }
 }
 
-/* 添加针对超小屏幕的媒体查询 
-@media (max-width: 360px) {
-    :root {
-        /* 调整超小屏幕的字体大小 */
-        --font-size-base: clamp(11px, 1.3vw, 13px);
-        --font-size-small: clamp(9px, 1.1vw, 11px);
-        --font-size-medium: clamp(13px, 1.5vw, 15px);
-        --font-size-large: clamp(15px, 1.7vw, 18px);
-        --font-size-xlarge: clamp(18px, 2.5vw, 22px);
-        
-        /* 调整超小屏幕的间距 */
-        --spacing-small: clamp(2px, 0.4vw, 6px);
-        --spacing-base: clamp(6px, 0.8vw, 10px);
-        --spacing-medium: clamp(10px, 1.2vw, 16px);
-        --spacing-large: clamp(16px, 1.6vw, 24px);
-    }
-    
-    .container {
-        padding: 0 var(--spacing-small);
-    }
-    
-    .project-info h2 {
-        font-size: var(--font-size-medium);
-    }
-    
-    .branch-btn {
-        padding: var(--spacing-small) var(--spacing-base);
-    }
-}*/
+
 
 /* 错误和信息提示样式 */
 .error-message, .info-message {
