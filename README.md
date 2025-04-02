@@ -10,25 +10,27 @@ FlowMinder
 </p>
 
 <p align="center">
+
         <img src="https://github.com/user-attachments/assets/0a7585f4-57f2-4673-8b9f-a30bdbc3a190" width="550" />
+
 </p>
 
-FlowMinder是一个基于Git图形可视化理念的项目管理Web应用。它利用Mermaid.js库渲染Git图形，帮助团队直观地可视化项目的分支结构和任务进展，提高项目透明度和协作效率。
+FlowMinder 是一个基于 Git 图形可视化理念的项目管理 Web 应用。它利用 Mermaid.js 库渲染 Git 图形，帮助团队直观地可视化项目的分支结构和任务进展，提高项目透明度和协作效率。
 
 ## 功能特点
 
-- 使用Mermaid gitgraph从上至下（TB模式）展示项目分支流程图
+- 使用 Mermaid gitgraph 从上至下（TB 模式）展示项目分支流程图
 - 支持多个并行分支的可视化展示与切换
 - 响应式设计，完美适配不同设备屏幕
 - 实时更新和自动刷新功能
-- 支持通过Docker Compose快速部署
+- 支持通过 Docker Compose 快速部署
 - 可自定义项目文件夹路径
-- 优雅的UI设计，提供流畅的用户体验
+- 优雅的 UI 设计，提供流畅的用户体验
 - 支持中文路径和文件名
 
 ## 技术栈
 
-- 前端：原生JavaScript、HTML5、CSS3
+- 前端：原生 JavaScript、HTML5、CSS3
 - 图表渲染：Mermaid.js
 - 容器化：Docker & Docker Compose
 - 服务器：Nginx
@@ -68,7 +70,7 @@ git clone https://github.com/yourusername/FlowMinder.git
 cd FlowMinder
 ```
 
-2. 启动Docker容器：
+2. 启动 Docker 容器：
 
 ```bash
 # 使用默认示例项目文件
@@ -106,12 +108,11 @@ CUSTOM_PROJECT_PATH=/path/to/your/project docker compose up -d
 
 ## 项目文件格式
 
-### Mermaid Gitgraph格式
+### Mermaid Gitgraph 格式
 
-每个分支文件应包含有效的Mermaid gitgraph代码。基本格式示例：
+每个分支文件应包含有效的 Mermaid gitgraph 代码。基本格式示例：
 
-```markdown
-
+````markdown
 ```mermaid
 gitGraph TB:
     commit id: "项目初始化" tag: "v0.1"
@@ -122,28 +123,20 @@ gitGraph TB:
     merge develop
     commit id: "发布版本" tag: "v1.0"
 ```
-
+````
 
 ## 使用指南
 
 ### 添加新分支
 
-1. 在项目文件夹中创建新的Markdown文件，如`new-feature.md`
-2. 在文件中添加符合Mermaid gitgraph语法的内容
-3. 保存文件后，FlowMinder将自动检测并显示新分支
+1. 在项目文件夹中创建新的 Markdown 文件，如`new-feature.md`
+2. 在文件中添加符合 Mermaid gitgraph 语法的内容
+3. 保存文件后，FlowMinder 将自动检测并显示新分支
 
 ### 修改现有分支
 
-直接编辑对应的Markdown文件，保存后FlowMinder将自动更新显示内容。
-
-## 部署与维护
-
-### 停止应用
-
-```bash
-docker compose down
-```
+直接编辑对应的 Markdown 文件，保存后 FlowMinder 将自动更新显示内容。
 
 ## 许可证
 
-MIT 
+MIT
