@@ -98,6 +98,7 @@ CUSTOM_PROJECT_PATH=/path/to/your/project docker compose up -d
 每个分支文件应包含有效的Mermaid gitgraph代码。基本格式示例：
 
 ```markdown
+
 ```mermaid
 gitGraph TB:
     commit id: "项目初始化" tag: "v0.1"
@@ -108,6 +109,7 @@ gitGraph TB:
     merge develop
     commit id: "发布版本" tag: "v1.0"
 ```
+
 ```
 
 ### 文件命名约定
