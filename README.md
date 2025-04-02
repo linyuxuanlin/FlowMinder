@@ -1,7 +1,3 @@
-
-![28ae8e12-f1b9-43a2-9e7a-859cc0dfc2ce](https://github.com/user-attachments/assets/0a7585f4-57f2-4673-8b9f-a30bdbc3a190)
-
-
 <h1 align="center">
 <img width="27" src="./app/favicon.svg">
 FlowMinder
