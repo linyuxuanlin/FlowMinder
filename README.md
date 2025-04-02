@@ -1,6 +1,21 @@
-# FlowMinder
 
 ![28ae8e12-f1b9-43a2-9e7a-859cc0dfc2ce](https://github.com/user-attachments/assets/0a7585f4-57f2-4673-8b9f-a30bdbc3a190)
+
+
+<h1 align="center">
+<img width="27" src="./app/favicon.svg">
+FlowMinder
+</h1>
+
+<p align="center">
+  <a href="https://FlowMinder.wiki-power.com/"><img src="https://img.shields.io/badge/Demo-site-t?&style=flat-square" alt="Demo"></a>
+  <a href="https://github.com/linyuxuanlin/FlowMinder/blob/main/LICENSE"><img src="https://img.shields.io/github/license/linyuxuanlin/FlowMinder?style=flat-square" alt="许可证"></a>
+  <img src="https://img.shields.io/github/repo-size/linyuxuanlin/FlowMinder?style=flat-square&color=328657" alt="存储库大小">
+</p>
+
+<p align="center">
+        <img src="https://github.com/user-attachments/assets/0a7585f4-57f2-4673-8b9f-a30bdbc3a190" width="550" />
+</p>
 
 FlowMinder是一个基于Git图形可视化理念的项目管理Web应用。它利用Mermaid.js库渲染Git图形，帮助团队直观地可视化项目的分支结构和任务进展，提高项目透明度和协作效率。
 
