@@ -10,9 +10,7 @@ FlowMinder
 </p>
 
 <p align="center">
-
-        <img src="./assets/index.png" width="550" />
-
+  <img src="./assets/index.png" width="550" />
 </p>
 
 FlowMinder 是一个基于 Git 图形可视化理念的项目管理 Web 应用。它利用 Mermaid.js 库渲染 Git 图形，帮助团队直观地可视化项目的分支结构和任务进展，提高项目透明度和协作效率。
