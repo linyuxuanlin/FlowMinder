@@ -11,7 +11,7 @@ FlowMinder
 
 <p align="center">
 
-        <img src="https://github.com/user-attachments/assets/0a7585f4-57f2-4673-8b9f-a30bdbc3a190" width="550" />
+        <img src="./assets/index.png" width="550" />
 
 </p>
 
