@@ -1,5 +1,9 @@
 # FlowMinder
 
+![Uploading ChatGPT Image 2025年4月2日 22_20_05.png…]()
+
+（样机图是 ChatGPT 生成的，真实的网页也差不多长这样，忽略图中的文字，看个大概吧）
+
 FlowMinder是一个基于Git图形可视化理念的项目管理Web应用。它利用Mermaid.js库渲染Git图形，帮助团队直观地可视化项目的分支结构和任务进展，提高项目透明度和协作效率。
 
 ## 功能特点
