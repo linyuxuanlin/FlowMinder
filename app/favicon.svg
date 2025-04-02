@@ -1,36 +1,40 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
-  <style>
-    .primary {
-      fill: #D4A76A;
-    }
-    .secondary {
-      fill: #8C7158;
-    }
-    .background {
-      fill: #F9F4E8;
-    }
-    .accent {
-      fill: #5D4B3A;
-    }
-    .highlight {
-      fill: #C4946A;
-    }
-  </style>
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F0F5FA" />
+      <stop offset="100%" stop-color="#E0E9F5" />
+    </linearGradient>
+    <linearGradient id="primaryGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#7BA3C7" />
+      <stop offset="100%" stop-color="#6A8EAE" />
+    </linearGradient>
+    <linearGradient id="secondaryGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#5D7FA0" />
+      <stop offset="100%" stop-color="#506D85" />
+    </linearGradient>
+  </defs>
   
   <!-- 背景 -->
-  <circle cx="16" cy="16" r="15" class="background" />
+  <circle cx="16" cy="16" r="15" fill="url(#bgGradient)" />
   
   <!-- 分支流图形元素 -->
-  <path d="M8,8 C12,8 12,16 16,16 C20,16 20,8 24,8" stroke="#8C7158" stroke-width="2" fill="none" />
-  <path d="M8,24 C12,24 12,16 16,16 C20,16 20,24 24,24" stroke="#D4A76A" stroke-width="2" fill="none" />
+  <path d="M8,8 C12,8 12,16 16,16 C20,16 20,8 24,8" stroke="#506D85" stroke-width="2" fill="none" stroke-linecap="round" />
+  <path d="M8,24 C12,24 12,16 16,16 C20,16 20,24 24,24" stroke="#6A8EAE" stroke-width="2" fill="none" stroke-linecap="round" />
   
   <!-- 节点圆点 -->
-  <circle cx="8" cy="8" r="3" class="secondary" />
-  <circle cx="24" cy="8" r="3" class="secondary" />
-  <circle cx="16" cy="16" r="3.5" class="primary" />
-  <circle cx="8" cy="24" r="3" class="primary" />
-  <circle cx="24" cy="24" r="3" class="primary" />
+  <circle cx="8" cy="8" r="3" fill="url(#secondaryGradient)" />
+  <circle cx="24" cy="8" r="3" fill="url(#secondaryGradient)" />
+  <circle cx="16" cy="16" r="3.5" fill="url(#primaryGradient)" />
+  <circle cx="8" cy="24" r="3" fill="url(#primaryGradient)" />
+  <circle cx="24" cy="24" r="3" fill="url(#primaryGradient)" />
   
   <!-- 外环 -->
-  <circle cx="16" cy="16" r="15" fill="none" stroke="#E0D2B4" stroke-width="1" />
+  <circle cx="16" cy="16" r="15" fill="none" stroke="#D0DDE9" stroke-width="1" />
+  
+  <!-- 添加光泽效果 -->
+  <circle cx="14" cy="14" r="0.8" fill="#ffffff" fill-opacity="0.7" />
+  <circle cx="7" cy="7" r="0.6" fill="#ffffff" fill-opacity="0.6" />
+  <circle cx="23" cy="7" r="0.6" fill="#ffffff" fill-opacity="0.6" />
+  <circle cx="7" cy="23" r="0.6" fill="#ffffff" fill-opacity="0.6" />
+  <circle cx="23" cy="23" r="0.6" fill="#ffffff" fill-opacity="0.6" />
 </svg> 
