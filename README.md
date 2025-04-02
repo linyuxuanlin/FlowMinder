@@ -110,13 +110,6 @@ gitGraph TB:
     commit id: "发布版本" tag: "v1.0"
 ```
 
-```
-
-### 文件命名约定
-
-- 使用有意义的名称，如`main-branch.md`、`feature-development.md`等
-- 文件必须使用`.md`扩展名
-- 支持中文文件名
 
 ## 使用指南
 
